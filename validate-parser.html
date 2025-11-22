@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>miniFQS Validator</title>
+	<style>
+		body {
+			font-family: sans-serif;
+			padding: 20px;
+			max-width: 1200px;
+			margin: 0 auto;
+			background: #f4f4f9;
+		}
+
+		h1 {
+			color: #333;
+		}
+
+		.test-case {
+			background: white;
+			border: 1px solid #ddd;
+			margin-bottom: 20px;
+			padding: 15px;
+			border-radius: 5px;
+			display: flex;
+			gap: 20px;
+		}
+
+		.input-pane,
+		.output-pane {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+		}
+
+		textarea {
+			width: 100%;
+			height: 100px;
+			font-family: monospace;
+			border: 1px solid #ccc;
+			padding: 5px;
+		}
+
+		pre {
+			background: #eee;
+			padding: 10px;
+			overflow-x: auto;
+			border-radius: 4px;
+			font-size: 12px;
+			height: 100px;
+			margin: 0;
+		}
+
+		.status {
+			font-weight: bold;
+			margin-bottom: 5px;
+		}
+
+		.pass {
+			color: green;
+		}
+
+		.fail {
+			color: red;
+		}
+
+		.label {
+			font-size: 0.8em;
+			text-transform: uppercase;
+			color: #777;
+			margin-bottom: 5px;
+		}
+
+		button {
+			padding: 10px 20px;
+			cursor: pointer;
+			background: #007bff;
+			color: white;
+			border: none;
+			border-radius: 4px;
+			font-size: 16px;
+		}
+
+		button:hover {
+			background: #0056b3;
+		}
+	</style>
+</head>
+
+<body>
+
+	<h1>miniFQS Parser Validator</h1>
+	<p>Loads <code>parser.js</code> and exercises the grammar against defined corner cases.</p>
+
+	<div id="test-container"></div>
+
+	<!-- Load the compiled parser -->
+	<script src="./parser.js"></script>
+
+	<script>
+		// -------------------------------------------------------
+		// THE TEST SUITE
+		// -------------------------------------------------------
+		const testSuite = [
+			{
+				name: "Basic Score",
+				desc: "Standard setup with Title, Lyric, and Pitch.",
+				fqs: `My First Song
+
+Hello world
+K0 | a b`
+			},
+			{
+				name: "Rhythm: Implicit vs Explicit",
+				desc: "Testing dots, implied subdivisions, and multi-beat integers.",
+				fqs: `Rhythm Test
+
+2Long Word* Hap.py
+K0 c c c`
+			},
+			{
+				name: "Rhythm: Special Characters",
+				desc: "Holds (-), Rests (;), Double-holds (=), and Melismas (*).",
+				fqs: `Specials
+
+- ; = *--*
+K0 a a a a`
+			},
+			{
+				name: "Feature: Time Compression",
+				desc: "Using the underscore (_) suffix to compress beats.",
+				fqs: `Compression
+
+quick_ trip_
+K0 a b`
+			},
+			{
+				name: "Pitch: Complex Modifiers",
+				desc: "Key signatures, accidentals (##, &&), and octave shifts (^, /).",
+				fqs: `Pitch Madness
+
+Complex Pitch
+K#3 | ^c /d &&e ##f %g
+`
+			},
+			{
+				name: "Structure: Multiple Blocks",
+				desc: "Two distinct music blocks separated by empty lines.",
+				fqs: `Multi Block Song
+
+Block One
+K0 a b c
+
+
+Block Two
+K&2 d e f`
+			},
+			{
+				name: "Edge Case: Unicode & Barlines",
+				desc: "Accented characters and loose barline spacing.",
+				fqs: `Unicode Test
+
+Hél.lo | Wôrld
+K0 c | c`
+			},
+			{
+				name: "Counter Line",
+				desc: "Testing optional metadata for pickup beats.",
+				fqs: `Pickup Test
+
+One Two Three
+K0 a b c
+counter: 3`
+			}
+		];
+
+		// -------------------------------------------------------
+		// HARNESS LOGIC
+		// -------------------------------------------------------
+		const container = document.getElementById('test-container');
+
+		if (typeof fqsParser === 'undefined') {
+			container.innerHTML = `<h2 class="fail">Error: parser.js not found. Run build.js first!</h2>`;
+		} else {
+			renderTests();
+		}
+
+		function renderTests() {
+			testSuite.forEach((test, index) => {
+				// Create UI Elements
+				const div = document.createElement('div');
+				div.className = 'test-case';
+
+				div.innerHTML = `
+                    <div class="input-pane">
+                        <div class="status" id="status-${index}">Running...</div>
+                        <div class="label">Test: ${test.name}</div>
+                        <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">${test.desc}</div>
+                        <textarea readonly>${test.fqs}</textarea>
+                    </div>
+                    <div class="output-pane">
+                        <div class="label">AST Output</div>
+                        <pre id="output-${index}"></pre>
+                    </div>
+                `;
+				container.appendChild(div);
+
+				// Run Parsing
+				const statusEl = document.getElementById(`status-${index}`);
+				const outputEl = document.getElementById(`output-${index}`);
+
+				try {
+					const ast = fqsParser.parse(test.fqs);
+					statusEl.textContent = "✅ PASS";
+					statusEl.className = "status pass";
+					outputEl.textContent = JSON.stringify(ast, null, 2);
+				} catch (e) {
+					statusEl.textContent = "❌ FAIL";
+					statusEl.className = "status fail";
+
+					// Format error for readability
+					const errorInfo = {
+						message: e.message,
+						location: e.location,
+						found: e.found,
+						expected: e.expected
+					};
+					outputEl.textContent = JSON.stringify(errorInfo, null, 2);
+					outputEl.style.background = "#fff0f0";
+					outputEl.style.borderColor = "#ffcccc";
+				}
+			});
+		}
+	</script>
+</body>
+
+</html>
