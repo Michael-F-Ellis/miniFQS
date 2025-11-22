@@ -136,7 +136,8 @@ TextSegment
 SpecialSegment
   = char:[*_;=-] 
     { 
-      if (char === "=") return { type: "Special", value: "=" };
+      if (char === "=") return { type: "Special", value: "--" }; // '=' is shorthand for '--'
+      else
       return { type: "Special", value: char }; 
     }
 
