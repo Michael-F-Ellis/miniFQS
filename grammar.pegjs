@@ -9,7 +9,7 @@
 //    A score consists of a title block followed by one of more music
 //    blocks. Each music block corresponds to a line of music in a
 //    a vocal score, i.e. lyrics and pitches. Blocks are separated
-//    by one or more blank lines.
+//    by one or more blank lines. 
 // =============================================================================
 
 Score
@@ -172,6 +172,7 @@ KeySignature
 
 PitchElement
   = _ bar:Barline _ { return bar; }
+  / _ key:KeySignature _ { return key; } // Support mid-line key changes
   / _ pitch:Pitch _ { return pitch; }
 
 // A pitch is one of 'abcdefg' optionally preceded by one or two accidentals
