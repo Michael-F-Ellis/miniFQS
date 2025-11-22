@@ -35,7 +35,7 @@ K&3 bb | c b e | d bb | c b ^f | e bb |
 counter: 3
 
 birth day dear | NAME * Hap.py | birth day to | you=* - - |
-K&3 ^b g e | d c ^aa | g e f | e |
+K&3 ^b g e | d c ^aa | g e f | e - - |
 
 */
 // --------------------------------------------------------------------
@@ -161,15 +161,15 @@ PitchLine
 // and a count of the sharps or flats, e.g.  K0 is C major, K#2 is D major, K&3 is 
 // Eb major. Note that we permit putting the sharp or flat before or after the
 // count.
-
 KeySignature
   = "K" 
-    type:(
-      "0" { return { type: '%', count: 0 }}
-    / sig:[#&] count:[1-7] { return { type: sig, count: parseInt(count) }; }
-    / count:[1-7] sig:[#&] { return { type: sig, count: parseInt(count) }; }
+    data:( // <--- 1. Label this block 'data'
+      "0" { return { type: "KeySignature", accidental: null, count: 0 }; }
+    / sig:[#&] count:[1-7] { return { type: "KeySignature", accidental: sig, count: parseInt(count) }; }
+    / count:[1-7] sig:[#&] { return { type: "KeySignature", accidental: sig, count: parseInt(count) }; }
     )
-
+    { return data; } // <--- 2. Return ONLY 'data', discarding the "K"
+    
 PitchElement
   = _ bar:Barline _ { return bar; }
   / _ key:KeySignature _ { return key; } // Support mid-line key changes
