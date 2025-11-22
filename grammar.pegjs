@@ -35,7 +35,7 @@ K&3 bb | c b e | d bb | c b ^f | e bb |
 counter: 3
 
 birth day dear | NAME * Hap.py | birth day to | you=* - - |
-K&3 ^b g e | d c ^aa | g e f | e - - |
+K&3 ^b g e | d c ^aa | g e f | e |
 
 */
 // --------------------------------------------------------------------
