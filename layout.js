@@ -224,7 +224,6 @@ function layoutBlock(block, startY) {
                 });
             }
             counterVal += duration;
-
             // 3. Render Lyric & Pitch Characters
             let localCharIdx = 0;
 
@@ -333,86 +332,6 @@ function layoutBlock(block, startY) {
                 // Note: If pElem is a Barline, it is handled in the main loop, 
                 // or if we need strict sync, we could check here. 
                 // For now, the main loop handles explicit pitch-line barlines.
-            });
-
-            // Iterate Segments again to place Pitches
-            // The Pitch X should align with the FIRST character of the segment.
-            let segmentXOffset = 0;
-            content.forEach(segment => {
-                const segmentX = startX + (segmentXOffset * fontW);
-
-                // Is this segment an event that takes a pitch?
-                // TextSegment -> Yes.
-                // Special -> Yes.
-
-                const pElem = pitchElements[pitchIdx];
-                if (pElem && pElem.type === 'Pitch') {
-
-                    // 1. Calculate Octave (LilyPond Rule)
-                    const calculated = calculatePitch(pElem, prevPitch);
-                    prevPitch = { letter: calculated.letter, octave: calculated.octave };
-
-                    // 2. Determine Accidental Color & Symbol
-                    const explicitAcc = pElem.accidental; // #, &, %, ##, && or null
-                    let effectiveAcc = alterations.getAccidental(calculated.letter, calculated.octave, explicitAcc);
-
-                    let color = 'black';
-                    let displayChar = calculated.letter;
-
-                    if (effectiveAcc === '#') color = 'red';
-                    if (effectiveAcc === '&') color = 'blue';
-                    if (effectiveAcc === '##') color = 'orange';
-                    if (effectiveAcc === '&&') color = 'green';
-
-                    // 3. Calculate Y Position
-                    // Use V_OFFSETS lookup
-                    // Construct key: e.g., "♯a" or "♮b"
-                    const symbolMap = { '#': '♯', '&': '♭', '%': '♮', '##': '𝄪', '&&': '𝄫' };
-                    const accSymbol = symbolMap[effectiveAcc] || '♮'; // Default natural for lookup if none
-
-                    // Note: The V_OFFSETS table relies on specific keys.
-                    // If effectiveAcc is '%', we look up "♮a".
-                    // If effectiveAcc is implicitly natural (null in table?), we assume "♮".
-
-                    const lookupKey = accSymbol + calculated.letter;
-                    const vOffset = V_OFFSETS[lookupKey];
-
-                    if (vOffset !== undefined) {
-                        const gOffset = 7;
-                        // Formula from Pitch.js:
-                        // y += (gOffset + vOffsets) * (fontheight / 12)
-                        // centerLineY is our "y0".
-
-                        // Octave Shift: -1 octave means LOWER (Higher Y).
-                        const octaveShift = calculated.octave * fontH;
-
-                        // We subtract octaveShift because +Octave means Up (Lower Y)
-                        let yPos = centerLineY - octaveShift;
-
-                        yPos += (gOffset + vOffset) * (fontH / 12);
-
-                        // Move up relative to baseline (svg text draws from bottom)
-                        // FQS renderer seems to draw text centered or baseline. 
-                        // Let's assume baseline adjustment:
-                        yPos -= fontH;
-
-                        commands.push({
-                            type: 'text',
-                            x: segmentX,
-                            y: yPos,
-                            text: displayChar,
-                            color: color,
-                            font: 'bold 16px sans-serif'
-                        });
-                    }
-
-                    pitchIdx++;
-                } else if (pElem && pElem.type === 'Barline') {
-                    // Should be handled by main loop, but if sync is off, consume.
-                    // pitchIdx++; 
-                }
-
-                segmentXOffset += segment.value.length;
             });
         }
     });

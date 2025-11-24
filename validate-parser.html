@@ -3,14 +3,14 @@
 
 <head>
 	<meta charset="UTF-8">
-	<title>miniFQS Validator</title>
+	<title>miniFQS Validator & Renderer</title>
 	<style>
 		body {
 			font-family: sans-serif;
 			padding: 20px;
 			max-width: 1200px;
 			margin: 0 auto;
-			background: #f4f4f9;
+			background: #f8f9fa;
 		}
 
 		h1 {
@@ -20,41 +20,41 @@
 		.test-case {
 			background: white;
 			border: 1px solid #ddd;
-			margin-bottom: 20px;
-			padding: 15px;
-			border-radius: 5px;
-			display: flex;
-			gap: 20px;
-		}
-
-		.input-pane,
-		.output-pane {
-			flex: 1;
+			margin-bottom: 30px;
+			padding: 20px;
+			border-radius: 8px;
 			display: flex;
 			flex-direction: column;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+		}
+
+		.input-pane {
+			width: 100%;
+			margin-bottom: 15px;
+		}
+
+		.output-pane {
+			width: 100%;
+			background: #fff;
+			border: 1px solid #eee;
+			padding: 10px;
+			overflow-x: auto;
 		}
 
 		textarea {
 			width: 100%;
-			height: 100px;
+			height: 80px;
 			font-family: monospace;
 			border: 1px solid #ccc;
-			padding: 5px;
-		}
-
-		pre {
-			background: #eee;
-			padding: 10px;
-			overflow-x: auto;
+			padding: 8px;
 			border-radius: 4px;
-			font-size: 12px;
-			height: 100px;
-			margin: 0;
+			box-sizing: border-box;
 		}
 
 		.status {
 			font-weight: bold;
 			margin-bottom: 5px;
+			display: inline-block;
 		}
 
 		.pass {
@@ -66,171 +66,169 @@
 		}
 
 		.label {
-			font-size: 0.8em;
+			font-size: 0.75em;
 			text-transform: uppercase;
-			color: #777;
+			letter-spacing: 1px;
+			color: #888;
 			margin-bottom: 5px;
+			font-weight: bold;
 		}
 
-		button {
-			padding: 10px 20px;
-			cursor: pointer;
-			background: #007bff;
-			color: white;
-			border: none;
-			border-radius: 4px;
-			font-size: 16px;
+		svg {
+			background: #fafafa;
+			border: 1px solid #eee;
+			display: block;
 		}
 
-		button:hover {
-			background: #0056b3;
+		text {
+			dominant-baseline: baseline;
 		}
 	</style>
 </head>
 
 <body>
 
-	<h1>miniFQS Parser Validator</h1>
-	<p>Loads <code>parser.js</code> and exercises the grammar against defined corner cases.</p>
+	<h1>miniFQS Validator</h1>
+	<p>Visual verification of Parser + Layout Logic (LilyPond Rule, Colors, Spacing).</p>
 
 	<div id="test-container"></div>
 
-	<!-- Load the compiled parser -->
+	<!-- Scripts -->
 	<script src="./parser.js"></script>
+	<script src="./layout.js"></script>
 
 	<script>
-		// -------------------------------------------------------
-		// THE TEST SUITE
-		// -------------------------------------------------------
 		const testSuite = [
 			{
-				name: "Basic Score",
-				desc: "Standard setup with Title, Lyric, and Pitch.",
-				fqs: `My First Song
+				name: "Hodie Christus (Excerpt)",
+				desc: "The example from the PDF. Tests colors, 3-line staff, and chromatic placement.",
+				fqs: `Hodie Excerpt
 
-Hel.lo world |
-K0 c d e |`
+; ; ; | ; ; ; | Ho -di e | - - - |
+K&2  ^b b b |`
 			},
 			{
-				name: "Rhythm: Implicit vs Explicit",
-				desc: "Testing dots, implied subdivisions, and multi-beat integers.",
-				fqs: `Rhythm Test
+				name: "LilyPond Rule Check",
+				desc: "No octave marks. Should jump octaves automatically to stay close.",
+				fqs: `Interval Test
 
-2Long** Word* Hap.py |
-K0 ccc dd ef |`
+Start Down Up Up | * * * |
+K0 c g c f | /g ^g ^g |`
 			},
 			{
-				name: "Rhythm: Special Characters",
-				desc: "Holds (-), Rests (;), Double-holds (=), and Melismas (*).",
-				fqs: `Specials
+				name: "Accidental Colors",
+				desc: "Sharp(Red), Flat(Blue), Natural(Black), Dbl(Orange/Green).",
+				fqs: `Color Test
 
-; - = *--* |
-K0 a a a a |`
+Red Blue Black Org Grn |
+K0 #a &b %c ##d &&e |`
 			},
 			{
-				name: "Feature: Time Compression",
-				desc: "Using the underscore (_) suffix to compress beats.",
-				fqs: `Compression
+				name: "Rhythm & Counter",
+				desc: "Multi-beat tuplets (2Long) and Subdivisions (Short.short).",
+				fqs: `Rhythm Math
 
-group.two_ group.of.three |
-K0 ab cde |`
+2Long Start.sub |
+K0 c c c |`
 			},
 			{
-				name: "Pitch: Complex Modifiers",
-				desc: "Key signatures, accidentals (##, &&), and octave shifts (^, /).",
-				fqs: `Pitch Madness
+				name: "Full Structure",
+				desc: "Multi-block test.",
+				fqs: `Block One
+Hello |
+K0 c |
 
-Rath.er Com.plex Pitch |
-K#3 ^c/d &&e##f %g |
-`
-			},
-			{
-				name: "Structure: Multiple Blocks",
-				desc: "Two distinct music blocks separated by empty lines.",
-				fqs: `Multi Block Song
-
-Block One* |
-K0 a bc |
-
-
-Block* Two |
-K&2 de f |`
-			},
-			{
-				name: "Edge Case: Unicode & Barlines",
-				desc: "Accented characters and loose barline spacing.",
-				fqs: `Unicode Test
-
-Hél lo Wôrld - |
-K0 g a c |`
-			},
-			{
-				name: "Counter Line",
-				desc: "Testing optional metadata for pickup beats.",
-				fqs: `Pickup Test
-
-Three.and | one  two.and  three |
-K0 ga c cd e |
-counter: 3`
+World |
+K0 c |`
 			}
 		];
 
-		// -------------------------------------------------------
-		// HARNESS LOGIC
-		// -------------------------------------------------------
 		const container = document.getElementById('test-container');
 
-		if (typeof fqsParser === 'undefined') {
-			container.innerHTML = `<h2 class="fail">Error: parser.js not found. Run build.js first!</h2>`;
+		if (typeof fqsParser === 'undefined' || typeof FQSLayout === 'undefined') {
+			container.innerHTML = `<h2 class="fail">Error: Scripts missing. Run build.js and ensure layout.js is present.</h2>`;
 		} else {
 			renderTests();
 		}
 
 		function renderTests() {
 			testSuite.forEach((test, index) => {
-				// Create UI Elements
 				const div = document.createElement('div');
 				div.className = 'test-case';
 
 				div.innerHTML = `
                     <div class="input-pane">
                         <div class="status" id="status-${index}">Running...</div>
-                        <div class="label">Test: ${test.name}</div>
-                        <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">${test.desc}</div>
-                        <textarea readonly>${test.fqs}</textarea>
+                        <span class="label"> ${test.name}</span>
+                        <div style="font-size: 0.9em; color: #666; margin: 5px 0;">${test.desc}</div>
+                        <textarea id="input-${index}">${test.fqs}</textarea>
                     </div>
                     <div class="output-pane">
-                        <div class="label">AST Output</div>
-                        <pre id="output-${index}"></pre>
+                        <div class="label">SVG Renderer</div>
+                        <div id="svg-${index}"></div>
                     </div>
                 `;
 				container.appendChild(div);
 
-				// Run Parsing
-				const statusEl = document.getElementById(`status-${index}`);
-				const outputEl = document.getElementById(`output-${index}`);
+				const inputEl = document.getElementById(`input-${index}`);
+				inputEl.addEventListener('input', () => runTest(index, inputEl.value));
 
-				try {
-					const ast = fqsParser.parse(test.fqs);
-					statusEl.textContent = "✅ PASS";
-					statusEl.className = "status pass";
-					outputEl.textContent = JSON.stringify(ast, null, 2);
-				} catch (e) {
-					statusEl.textContent = "❌ FAIL";
-					statusEl.className = "status fail";
-
-					// Format error for readability
-					const errorInfo = {
-						message: e.message,
-						location: e.location,
-						found: e.found,
-						expected: e.expected
-					};
-					outputEl.textContent = JSON.stringify(errorInfo, null, 2);
-					outputEl.style.background = "#fff0f0";
-					outputEl.style.borderColor = "#ffcccc";
-				}
+				// Initial Run
+				runTest(index, test.fqs);
 			});
+		}
+
+		function runTest(index, input) {
+			const statusEl = document.getElementById(`status-${index}`);
+			const svgContainer = document.getElementById(`svg-${index}`);
+
+			try {
+				// 1. Parse
+				const ast = fqsParser.parse(input);
+				statusEl.textContent = "✅ PARSE OK";
+				statusEl.className = "status pass";
+
+				// 2. Layout (Now returns object with height)
+				const layoutData = FQSLayout.layoutScore(ast);
+
+				// 3. Render SVG
+				const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+				svg.setAttribute("width", "100%");
+
+				// DYNAMIC HEIGHT FIX: Use the height reported by the layout engine
+				svg.setAttribute("height", layoutData.height);
+
+				svg.setAttribute("viewBox", `0 0 800 ${layoutData.height}`);
+
+				layoutData.commands.forEach(cmd => {
+					if (cmd.type === 'line') {
+						const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+						line.setAttribute("x1", cmd.x1);
+						line.setAttribute("y1", cmd.y1);
+						line.setAttribute("x2", cmd.x2);
+						line.setAttribute("y2", cmd.y2);
+						line.setAttribute("stroke", cmd.stroke);
+						line.setAttribute("stroke-width", 1);
+						svg.appendChild(line);
+					} else if (cmd.type === 'text') {
+						const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+						text.setAttribute("x", cmd.x);
+						text.setAttribute("y", cmd.y);
+						text.setAttribute("fill", cmd.color);
+						text.style.font = cmd.font;
+						text.textContent = cmd.text;
+						svg.appendChild(text);
+					}
+				});
+
+				svgContainer.innerHTML = '';
+				svgContainer.appendChild(svg);
+
+			} catch (e) {
+				statusEl.textContent = "❌ FAIL: " + e.message;
+				statusEl.className = "status fail";
+				svgContainer.innerHTML = '';
+			}
 		}
 	</script>
 </body>
