@@ -108,40 +108,40 @@
 				desc: "Standard setup with Title, Lyric, and Pitch.",
 				fqs: `My First Song
 
-Hello world
-K0 | a b`
+Hel.lo world |
+K0 c d e |`
 			},
 			{
 				name: "Rhythm: Implicit vs Explicit",
 				desc: "Testing dots, implied subdivisions, and multi-beat integers.",
 				fqs: `Rhythm Test
 
-2Long Word* Hap.py
-K0 c c c`
+2Long** Word* Hap.py |
+K0 ccc dd ef |`
 			},
 			{
 				name: "Rhythm: Special Characters",
 				desc: "Holds (-), Rests (;), Double-holds (=), and Melismas (*).",
 				fqs: `Specials
 
-- ; = *--*
-K0 a a a a`
+; - = *--* |
+K0 a a a a |`
 			},
 			{
 				name: "Feature: Time Compression",
 				desc: "Using the underscore (_) suffix to compress beats.",
 				fqs: `Compression
 
-quick_ trip_
-K0 a b`
+group.two_ group.of.three |
+K0 ab cde |`
 			},
 			{
 				name: "Pitch: Complex Modifiers",
 				desc: "Key signatures, accidentals (##, &&), and octave shifts (^, /).",
 				fqs: `Pitch Madness
 
-Complex Pitch
-K#3 | ^c /d &&e ##f %g
+Rath.er Com.plex Pitch |
+K#3 ^c/d &&e##f %g |
 `
 			},
 			{
@@ -149,28 +149,28 @@ K#3 | ^c /d &&e ##f %g
 				desc: "Two distinct music blocks separated by empty lines.",
 				fqs: `Multi Block Song
 
-Block One
-K0 a b c
+Block One* |
+K0 a bc |
 
 
-Block Two
-K&2 d e f`
+Block* Two |
+K&2 de f |`
 			},
 			{
 				name: "Edge Case: Unicode & Barlines",
 				desc: "Accented characters and loose barline spacing.",
 				fqs: `Unicode Test
 
-Hél.lo | Wôrld
-K0 c | c`
+Hél lo Wôrld - |
+K0 g a c |`
 			},
 			{
 				name: "Counter Line",
 				desc: "Testing optional metadata for pickup beats.",
 				fqs: `Pickup Test
 
-One Two Three
-K0 a b c
+Three.and | one  two.and  three |
+K0 ga c cd e |
 counter: 3`
 			}
 		];

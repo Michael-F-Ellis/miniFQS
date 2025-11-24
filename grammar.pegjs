@@ -69,12 +69,12 @@ MusicBlock
 // The lyric line is the first line of every music block. It contains the lyric
 // a line of music annotated with special characters that define the intended 
 // mensuraton and rhythm.
+// UPDATED: LyricLine must end with a Barline
 LyricLine
-  = items:(
-      _ m:Barline _ { return m; }
-    / _ t:BeatTuple _ { return t; }
-  )+
-  { return items; }
+  = items:(_ m:Barline _ { return m; } / _ t:BeatTuple _ { return t; })+
+    & { return items.length > 0 && items[items.length - 1].type === "Barline"; } 
+    { return items; }
+
 
 // A BeatTuple contains the syllables and rhythm to be sung over one or more
 // beats. Most BeatTuples span a single beat.  Multi-beat tuples are prefixed with
@@ -145,18 +145,12 @@ SpecialSegment
 // 3. Pitch Line
 // =============================================================================
 // A pitch begins with a key signature followed by pitches and barlines.
-// TODO: Support changing key signature at the beginning of any measure.
+// A PitchLine must end with a Barline
 PitchLine
-  = key:KeySignature 
-    _ 
-    elements:PitchElement*
-    {
-      return {
-        type: "PitchLine",
-        keySignature: key,
-        elements: elements
-      };
-    }
+  = key:KeySignature _ elements:PitchElement*
+    & { return elements.length > 0 && elements[elements.length - 1].type === "Barline"; }
+    { return { type: "PitchLine", keySignature: key, elements: elements }; }
+   
 
 // A key signature is a capital 'K' followed by an accidental sign (# or &)
 // and a count of the sharps or flats, e.g.  K0 is C major, K#2 is D major, K&3 is 
