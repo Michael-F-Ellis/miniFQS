@@ -87,12 +87,13 @@ function layoutScore(ast) {
     let currentY = CONFIG.baseY;
     let maxScoreWidth = 0; // Track the widest block for auto-scaling
 
+    // 1. Layout Blocks
     if (ast.blocks) {
         ast.blocks.forEach(block => {
             const blockRender = layoutBlock(block, currentY);
             renderCommands.push(...blockRender.commands);
             currentY += blockRender.height + 50; // Padding between blocks
-            
+
             // Track widest block
             if (blockRender.width > maxScoreWidth) {
                 maxScoreWidth = blockRender.width;
@@ -100,7 +101,24 @@ function layoutScore(ast) {
         });
     }
 
-    // Return commands, height, AND the calculated width
+    // 2. Layout Title (Now that we know the width)
+    if (ast.title) {
+        // Calculate Center X based on ViewBox logic (Width + 50 margin)
+        // ViewBox Width = maxScoreWidth + 50
+        // Center = (maxScoreWidth + 50) / 2
+        const centerX = (maxScoreWidth + 50) / 2;
+
+        renderCommands.push({
+            type: 'text',
+            text: ast.title,
+            x: centerX,
+            y: CONFIG.baseY - 40, // Position above the first staff
+            font: 'bold 28px sans-serif', // Significantly larger
+            color: '#333',
+            anchor: 'middle' // Request centering
+        });
+    }
+
     return {
         commands: renderCommands,
         height: currentY + 50, // Add a little bottom padding
@@ -133,7 +151,7 @@ function layoutBlock(block, startY) {
     // State for Rendering
     let currentX = 50; // Left Margin
     let maxX = currentX; // Track exact width of this block
-    
+
     const rowPitchY = startY;
     const rowLyricY = startY + (fontH * 4); // Room for 3 staff lines
     const rowCounterY = rowLyricY + fontH + 5;
@@ -169,8 +187,10 @@ function layoutBlock(block, startY) {
             // Draw Barline
             commands.push({
                 type: 'line',
-                x1: currentX + (fontW / 2), y1: rowPitchY - fontH,
-                x2: currentX + (fontW / 2), y2: rowCounterY,
+                x1: currentX + (fontW / 2),
+                y1: rowPitchY + fontH,  // FIXED: Starts at top staff line (Offset +1)
+                x2: currentX + (fontW / 2),
+                y2: rowCounterY,        // Extends down to counter
                 stroke: '#ccc'
             });
 

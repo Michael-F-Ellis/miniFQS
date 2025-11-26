@@ -41,7 +41,6 @@ class MiniFQS extends HTMLElement {
     }
 
     render() {
-        // 1. Setup Shadow DOM
         this.shadowRoot.innerHTML = `
             <style>
                 :host {
@@ -58,40 +57,20 @@ class MiniFQS extends HTMLElement {
         `;
         const container = this.shadowRoot.getElementById('container');
 
-        // 2. Empty Check
         if (!this._score || this._score.trim() === '') {
             return;
         }
 
         try {
-            // 3. Parse
             const ast = parse(this._score);
-            
-            // 4. Layout
             const layoutData = layoutScore(ast);
             
-            // 5. Calculate Auto-Scaling ViewBox
-            // layoutData.width includes the left margin (50).
-            // We add 50 to create a symmetrical Right Margin.
-            // This ensures the content is centered within the viewbox with margins.
             const viewBoxWidth = layoutData.width + 50; 
             const viewBoxHeight = layoutData.height;
 
-            // 6. Render SVG
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("width", "100%");
-            // We do not set fixed height; we let aspect ratio handle it, 
-            // OR set it if we want to force scroll. 
-            // Since we want "Scale to Fit", we rely on viewBox.
-            // However, SVG usually needs height or it collapses.
-            // If we want "width=100%", height should be auto? 
-            // SVG doesn't strictly support "height: auto" like img.
-            // But if we set viewBox, it has an intrinsic ratio.
-            
-            // We set the viewBox defining the coordinate system
             svg.setAttribute("viewBox", `0 0 ${viewBoxWidth} ${viewBoxHeight}`);
-            
-            // This forces the SVG to scale uniformly to fit the container width
             svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
 
             layoutData.commands.forEach(cmd => {
@@ -110,6 +89,12 @@ class MiniFQS extends HTMLElement {
                     text.setAttribute("y", cmd.y);
                     text.setAttribute("fill", cmd.color);
                     text.style.font = cmd.font; 
+                    
+                    // NEW: Handle Text Anchor (Centering)
+                    if (cmd.anchor) {
+                        text.setAttribute("text-anchor", cmd.anchor);
+                    }
+                    
                     text.textContent = cmd.text;
                     svg.appendChild(text);
                 }
