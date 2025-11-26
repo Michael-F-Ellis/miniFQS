@@ -112,16 +112,16 @@ K&2  ^b b b |`
 				desc: "No octave marks. Should jump octaves automatically to stay close.",
 				fqs: `Interval Test
 
-Start Down Up Up | * * * |
-K0 c g c f | /g ^g ^g |`
+Start Down Up Up |
+K0 c g c f |`
 			},
 			{
 				name: "Accidental Colors",
 				desc: "Sharp(Red), Flat(Blue), Natural(Black), Dbl(Orange/Green).",
 				fqs: `Color Test
 
-Red Blue Black Org Grn |
-K0 #a &b %c ##d &&e |`
+Red Blue Black Org Grn |  *** *** *** *** | *** *** *** *** |
+K0 #a &b %c ##d &&e | /c#cd #def #fg#g a#ab | cb&b a&ag &gfe &ed&d |`
 			},
 			{
 				name: "Rhythm & Counter",
@@ -134,12 +134,43 @@ K0 c c c |`
 			{
 				name: "Full Structure",
 				desc: "Multi-block test.",
-				fqs: `Block One
-Hello |
-K0 c |
+				fqs: `Hodie Christus Natus Est
 
-World |
-K0 c |`
+; ; ; | ; ; ; | Ho -di e | - - - | Ho -di e | Ho -di e |
+K&2 | | | ^b b b | | b b b | b b b |
+
+; ; ; | Chri - stus | na - - | - - - | * - - | * - - | * - - | tus - - | est - - |
+K&2 | ^b b | b | | g | &a | c | c | b |
+
+Ho -di e | - - - | Ho -di e | Ho -di e | ; ; Sal |
+K&2 | | | ^b b b | | b b b | b b b | b |
+
+va - - | - - - | tur - - | a - - | pa - - | * - - | * - - | ru - - | it - - |
+K&2 ^b | | g | &a | c | b | &a | c | b |
+
+; ; ; | ; ; ; | ; ; ; | ; ; ; | ; ; ; |
+K&2 |
+
+- - - | - - lae | tan - - | tur - Arch | an * ge |
+K&2 ^%b | %b | %b b | #c %b a |
+
+li - ho | -di e ho | -di e ex | ul* * * | ** ** ** |
+K&2 ^%b #c | %b b #c | %b b b | %b#c b a | %bab #cba |
+
+* -* | ** ** tant ju* | sti di cen tes | glo -ri a in.ex |
+K&2 ^ga | %bagf e fg | %a b c /f | bbbbb |
+
+cel * * sis | De - o - | glo -ri a in.ex | cel * * * * sis | De - o - |
+K&2 ^bc&dc | bb | fffff | fg&agfd | ff |
+
+Glo -ri a in.ex | cel * * * 2*** | * *  sis | De - o ; |
+K&2 fffff | fg&agagf | g f d | ff |
+
+; ; Al* ** | ** ** le - | lu - * - ya - |
+K&2 bcde | fg%ab c | g &a e |
+
+al - - - - - | - - - le lu* ya | al - - - le - | lu - - - ya - |
+K&2 f | gabc | bb | bb |`
 			}
 		];
 
