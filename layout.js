@@ -1,4 +1,4 @@
-// layout.js
+// layout.js - ES Module Version
 
 // ---------------------------------------------------------
 // CONSTANTS & LOOKUP TABLES
@@ -22,8 +22,6 @@ const V_OFFSETS = {
 
 // Map letter to numeric index for LilyPond Rule
 const PITCH_INDEX = { c: 0, d: 1, e: 2, f: 3, g: 4, a: 5, b: 6 };
-
-// Standard Key Signature Definition (Sharps/Flats order)
 const SHARPS_ORDER = ['f', 'c', 'g', 'd', 'a', 'e', 'b'];
 const FLATS_ORDER = ['b', 'e', 'a', 'd', 'g', 'c', 'f'];
 
@@ -376,5 +374,5 @@ function calculatePitch(current, prev) {
     return { letter, octave };
 }
 
-// Export for browser
-window.FQSLayout = { layoutScore };
+// EXPORT instead of Window attachment
+export { layoutScore };

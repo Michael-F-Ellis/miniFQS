@@ -2,139 +2,103 @@
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<title>miniFQS Validator & Renderer</title>
-	<style>
-		body {
-			font-family: sans-serif;
-			padding: 20px;
-			max-width: 1200px;
-			margin: 0 auto;
-			background: #f8f9fa;
-		}
+    <meta charset="UTF-8">
+    <title>miniFQS Component Validator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #f8f9fa;
+        }
 
-		h1 {
-			color: #333;
-		}
+        .test-case {
+            background: white;
+            border: 1px solid #ddd;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+        }
 
-		.test-case {
-			background: white;
-			border: 1px solid #ddd;
-			margin-bottom: 30px;
-			padding: 20px;
-			border-radius: 8px;
-			display: flex;
-			flex-direction: column;
-			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-		}
+        .input-pane {
+            width: 100%;
+            margin-bottom: 15px;
+        }
 
-		.input-pane {
-			width: 100%;
-			margin-bottom: 15px;
-		}
+        textarea {
+            width: 100%;
+            height: 80px;
+            font-family: monospace;
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
 
-		.output-pane {
-			width: 100%;
-			background: #fff;
-			border: 1px solid #eee;
-			padding: 10px;
-			overflow-x: auto;
-		}
+        .label {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            color: #888;
+            font-weight: bold;
+        }
 
-		textarea {
-			width: 100%;
-			height: 80px;
-			font-family: monospace;
-			border: 1px solid #ccc;
-			padding: 8px;
-			border-radius: 4px;
-			box-sizing: border-box;
-		}
-
-		.status {
-			font-weight: bold;
-			margin-bottom: 5px;
-			display: inline-block;
-		}
-
-		.pass {
-			color: green;
-		}
-
-		.fail {
-			color: red;
-		}
-
-		.label {
-			font-size: 0.75em;
-			text-transform: uppercase;
-			letter-spacing: 1px;
-			color: #888;
-			margin-bottom: 5px;
-			font-weight: bold;
-		}
-
-		svg {
-			background: #fafafa;
-			border: 1px solid #eee;
-			display: block;
-		}
-
-		text {
-			dominant-baseline: baseline;
-		}
-	</style>
+        /* The component handles its own internal styling, but we can style the container */
+        mini-fqs {
+            border: 1px solid #eee;
+            background: #fafafa;
+        }
+    </style>
 </head>
 
 <body>
 
-	<h1>miniFQS Validator</h1>
-	<p>Visual verification of Parser + Layout Logic (LilyPond Rule, Colors, Spacing).</p>
+    <h1>miniFQS Component Validator</h1>
+    <p>Testing the Web Component implementation.</p>
 
-	<div id="test-container"></div>
+    <div id="test-container"></div>
 
-	<!-- Scripts -->
-	<script src="./parser.js"></script>
-	<script src="./layout.js"></script>
+    <!-- Load the Component -->
+    <script type="module" src="./mini-fqs.js"></script>
 
-	<script>
-		const testSuite = [
-			{
-				name: "Hodie Christus (Excerpt)",
-				desc: "The example from the PDF. Tests colors, 3-line staff, and chromatic placement.",
-				fqs: `Hodie Excerpt
+    <script>
+        const testSuite = [
+            {
+                name: "Hodie Christus (Excerpt)",
+                desc: "The example from the PDF. Tests colors, 3-line staff, and chromatic placement.",
+                fqs: `Hodie Excerpt
 
 ; ; ; | ; ; ; | Ho -di e | - - - |
 K&2  ^b b b |`
-			},
-			{
-				name: "LilyPond Rule Check",
-				desc: "No octave marks. Should jump octaves automatically to stay close.",
-				fqs: `Interval Test
+            },
+            {
+                name: "LilyPond Rule Check",
+                desc: "No octave marks. Should jump octaves automatically to stay close.",
+                fqs: `Interval Test
 
 Start Down Up Up |
 K0 c g c f |`
-			},
-			{
-				name: "Accidental Colors",
-				desc: "Sharp(Red), Flat(Blue), Natural(Black), Dbl(Orange/Green).",
-				fqs: `Color Test
+            },
+            {
+                name: "Accidental Colors",
+                desc: "Sharp(Red), Flat(Blue), Natural(Black), Dbl(Orange/Green).",
+                fqs: `Color Test
 
 Red Blue Black Org Grn |  *** *** *** *** | *** *** *** *** |
 K0 #a &b %c ##d &&e | /c#cd #def #fg#g a#ab | cb&b a&ag &gfe &ed&d |`
-			},
-			{
-				name: "Rhythm & Counter",
-				desc: "Multi-beat tuplets (2Long) and Subdivisions (Short.short).",
-				fqs: `Rhythm Math
+            },
+            {
+                name: "Rhythm & Counter",
+                desc: "Multi-beat tuplets (2Long) and Subdivisions (Short.short).",
+                fqs: `Rhythm Math
 
 2Long Start.sub |
 K0 c c c |`
-			},
-			{
-				name: "Full Structure",
-				desc: "Multi-block test.",
-				fqs: `Hodie Christus Natus Est
+            },
+            {
+                name: "Full Structure",
+                desc: "Multi-block test.",
+                fqs: `Hodie Christus Natus Est
 
 ; ; ; | ; ; ; | Ho -di e | - - - | Ho -di e | Ho -di e |
 K&2 | | | ^b b b | | b b b | b b b |
@@ -171,97 +135,41 @@ K&2 bcde | fg%ab c | g &a e |
 
 al - - - - - | - - - le lu* ya | al - - - le - | lu - - - ya - |
 K&2 f | gabc | bb | bb |`
-			}
-		];
+            }
+        ];
 
-		const container = document.getElementById('test-container');
+        const container = document.getElementById('test-container');
 
-		if (typeof fqsParser === 'undefined' || typeof FQSLayout === 'undefined') {
-			container.innerHTML = `<h2 class="fail">Error: Scripts missing. Run build.js and ensure layout.js is present.</h2>`;
-		} else {
-			renderTests();
-		}
+        testSuite.forEach((test, index) => {
+            const div = document.createElement('div');
+            div.className = 'test-case';
 
-		function renderTests() {
-			testSuite.forEach((test, index) => {
-				const div = document.createElement('div');
-				div.className = 'test-case';
+            div.innerHTML = `
+                <div class="input-pane">
+                    <span class="label">${test.name}</span>
+                    <div style="font-size: 0.9em; color: #666; margin: 5px 0;">${test.desc}</div>
+                    <textarea id="input-${index}">${test.fqs}</textarea>
+                </div>
+                <div class="output-pane">
+                    <div class="label">Component Output</div>
+                    <!-- The Component Instance -->
+                    <mini-fqs id="fqs-${index}"></mini-fqs>
+                </div>
+            `;
+            container.appendChild(div);
 
-				div.innerHTML = `
-                    <div class="input-pane">
-                        <div class="status" id="status-${index}">Running...</div>
-                        <span class="label"> ${test.name}</span>
-                        <div style="font-size: 0.9em; color: #666; margin: 5px 0;">${test.desc}</div>
-                        <textarea id="input-${index}">${test.fqs}</textarea>
-                    </div>
-                    <div class="output-pane">
-                        <div class="label">SVG Renderer</div>
-                        <div id="svg-${index}"></div>
-                    </div>
-                `;
-				container.appendChild(div);
+            const inputEl = document.getElementById(`input-${index}`);
+            const component = document.getElementById(`fqs-${index}`);
 
-				const inputEl = document.getElementById(`input-${index}`);
-				inputEl.addEventListener('input', () => runTest(index, inputEl.value));
+            // Link Input to Component
+            inputEl.addEventListener('input', () => {
+                component.score = inputEl.value;
+            });
 
-				// Initial Run
-				runTest(index, test.fqs);
-			});
-		}
-
-		function runTest(index, input) {
-			const statusEl = document.getElementById(`status-${index}`);
-			const svgContainer = document.getElementById(`svg-${index}`);
-
-			try {
-				// 1. Parse
-				const ast = fqsParser.parse(input);
-				statusEl.textContent = "✅ PARSE OK";
-				statusEl.className = "status pass";
-
-				// 2. Layout (Now returns object with height)
-				const layoutData = FQSLayout.layoutScore(ast);
-
-				// 3. Render SVG
-				const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-				svg.setAttribute("width", "100%");
-
-				// DYNAMIC HEIGHT FIX: Use the height reported by the layout engine
-				svg.setAttribute("height", layoutData.height);
-
-				svg.setAttribute("viewBox", `0 0 800 ${layoutData.height}`);
-
-				layoutData.commands.forEach(cmd => {
-					if (cmd.type === 'line') {
-						const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-						line.setAttribute("x1", cmd.x1);
-						line.setAttribute("y1", cmd.y1);
-						line.setAttribute("x2", cmd.x2);
-						line.setAttribute("y2", cmd.y2);
-						line.setAttribute("stroke", cmd.stroke);
-						line.setAttribute("stroke-width", 1);
-						svg.appendChild(line);
-					} else if (cmd.type === 'text') {
-						const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-						text.setAttribute("x", cmd.x);
-						text.setAttribute("y", cmd.y);
-						text.setAttribute("fill", cmd.color);
-						text.style.font = cmd.font;
-						text.textContent = cmd.text;
-						svg.appendChild(text);
-					}
-				});
-
-				svgContainer.innerHTML = '';
-				svgContainer.appendChild(svg);
-
-			} catch (e) {
-				statusEl.textContent = "❌ FAIL: " + e.message;
-				statusEl.className = "status fail";
-				svgContainer.innerHTML = '';
-			}
-		}
-	</script>
+            // Attributes are handled immediately, even before upgrade
+            component.setAttribute('score', test.fqs);
+        });
+    </script>
 </body>
 
 </html>
