@@ -85,19 +85,26 @@ const CONFIG = {
 function layoutScore(ast) {
     const renderCommands = [];
     let currentY = CONFIG.baseY;
+    let maxScoreWidth = 0; // Track the widest block for auto-scaling
 
     if (ast.blocks) {
         ast.blocks.forEach(block => {
             const blockRender = layoutBlock(block, currentY);
             renderCommands.push(...blockRender.commands);
             currentY += blockRender.height + 50; // Padding between blocks
+            
+            // Track widest block
+            if (blockRender.width > maxScoreWidth) {
+                maxScoreWidth = blockRender.width;
+            }
         });
     }
 
-    // Return both the commands AND the final calculated height
+    // Return commands, height, AND the calculated width
     return {
         commands: renderCommands,
-        height: currentY + 50 // Add a little bottom padding
+        height: currentY + 50, // Add a little bottom padding
+        width: maxScoreWidth
     };
 }
 
@@ -125,6 +132,8 @@ function layoutBlock(block, startY) {
 
     // State for Rendering
     let currentX = 50; // Left Margin
+    let maxX = currentX; // Track exact width of this block
+    
     const rowPitchY = startY;
     const rowLyricY = startY + (fontH * 4); // Room for 3 staff lines
     const rowCounterY = rowLyricY + fontH + 5;
@@ -136,14 +145,18 @@ function layoutBlock(block, startY) {
 
     // Reference Lines: G+12 (Octave 1), G (Octave 0), G-12 (Octave -1)
     // We'll draw 3 grey lines.
+    // SCALING UPDATE: We store references to these lines to update x2 at the end
+    const lineCmds = [];
     const centerLineY = rowPitchY + (fontH * 2); // Arbitrary center
     [-1, 0, 1].forEach(offset => {
         // Simple visual reference lines
         // Note: FQS uses svg lines. We will just emit line commands
         const y = centerLineY - (offset * fontH);
-        commands.push({
-            type: 'line', x1: 50, y1: y, x2: 1000, y2: y, stroke: '#eee' // Placeholder width
-        });
+        const cmd = {
+            type: 'line', x1: 50, y1: y, x2: 50, y2: y, stroke: '#eee' // Start x2 at 50, update later
+        };
+        commands.push(cmd);
+        lineCmds.push(cmd);
     });
 
     // -- 2. Traverse Lyrics --
@@ -172,6 +185,7 @@ function layoutBlock(block, startY) {
             alterations.resetMeasure();
 
             currentX += fontW; // Space for barline
+            maxX = Math.max(maxX, currentX);
             return;
         }
 
@@ -197,6 +211,7 @@ function layoutBlock(block, startY) {
 
             // Add spacing after beat
             currentX += fontW;
+            maxX = Math.max(maxX, currentX);
 
             // 2. Render Counter (Linear Interpolation for Multi-beat)
             // If duration is 1, just draw '1' at start.
@@ -334,7 +349,10 @@ function layoutBlock(block, startY) {
         }
     });
 
-    return { commands, height: rowCounterY - startY };
+    // SCALING UPDATE: Extend staff lines to final width
+    lineCmds.forEach(cmd => cmd.x2 = maxX);
+
+    return { commands, height: rowCounterY - startY, width: maxX };
 }
 
 // ---------------------------------------------------------

@@ -1,7 +1,7 @@
 import { parse } from './parser.js';
 import { layoutScore } from './layout.js';
 
-console.log('mini-fqs module loaded'); // Debug 1
+console.log('mini-fqs module loaded');
 
 class MiniFQS extends HTMLElement {
     constructor() {
@@ -9,7 +9,6 @@ class MiniFQS extends HTMLElement {
         this.attachShadow({ mode: 'open' });
         this._score = '';
         this._config = {};
-        console.log('MiniFQS Constructor'); // Debug 2
     }
 
     static get observedAttributes() {
@@ -17,7 +16,6 @@ class MiniFQS extends HTMLElement {
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
-        console.log(`Attribute changed: ${name}`); // Debug 3
         if (name === 'score' && oldValue !== newValue) {
             this._score = newValue;
             this.render();
@@ -26,19 +24,23 @@ class MiniFQS extends HTMLElement {
 
     get score() { return this._score; }
     set score(val) {
-        console.log('Score setter called'); // Debug 4
         this._score = val;
         this.render();
     }
 
     connectedCallback() {
-        console.log('ConnectedCallback'); // Debug 5
+        if (this.hasOwnProperty('score')) {
+            let value = this.score;
+            delete this.score;
+            this.score = value;
+        }
+        if (!this._score && this.hasAttribute('score')) {
+            this._score = this.getAttribute('score');
+        }
         this.render();
     }
 
     render() {
-        console.log('Render starting...'); // Debug 6
-
         // 1. Setup Shadow DOM
         this.shadowRoot.innerHTML = `
             <style>
@@ -47,11 +49,10 @@ class MiniFQS extends HTMLElement {
                     background: #fff;
                     font-family: 'Courier New', monospace;
                     overflow-x: auto;
-                    border: 2px solid blue; /* VISUAL DEBUG: Force a border */
-                    min-height: 50px;       /* VISUAL DEBUG: Force height */
+                    border: 1px solid #eee;
                 }
-                svg { display: block; background: #fafafa; }
-                .error { color: red; padding: 10px; border: 1px solid red; }
+                svg { display: block; }
+                .error { color: #d32f2f; background: #fdecea; padding: 10px; white-space: pre-wrap; }
             </style>
             <div id="container"></div>
         `;
@@ -59,32 +60,40 @@ class MiniFQS extends HTMLElement {
 
         // 2. Empty Check
         if (!this._score || this._score.trim() === '') {
-            console.log('Render: Empty score, returning.');
             return;
         }
 
         try {
             // 3. Parse
-            console.log('Render: Parsing...');
             const ast = parse(this._score);
-            console.log('Render: Parse success', ast);
-
-            // 4. Layout
-            console.log('Render: Layout starting...');
-            // Check if layoutScore is actually a function
-            if (typeof layoutScore !== 'function') {
-                throw new Error(`layoutScore is not a function. It is: ${typeof layoutScore}`);
-            }
             
+            // 4. Layout
             const layoutData = layoutScore(ast);
-            console.log('Render: Layout success', layoutData);
+            
+            // 5. Calculate Auto-Scaling ViewBox
+            // layoutData.width includes the left margin (50).
+            // We add 50 to create a symmetrical Right Margin.
+            // This ensures the content is centered within the viewbox with margins.
+            const viewBoxWidth = layoutData.width + 50; 
+            const viewBoxHeight = layoutData.height;
 
-            // 5. Render SVG
+            // 6. Render SVG
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("width", "100%");
-            svg.setAttribute("height", layoutData.height);
-            svg.setAttribute("viewBox", `0 0 800 ${layoutData.height}`);
+            // We do not set fixed height; we let aspect ratio handle it, 
+            // OR set it if we want to force scroll. 
+            // Since we want "Scale to Fit", we rely on viewBox.
+            // However, SVG usually needs height or it collapses.
+            // If we want "width=100%", height should be auto? 
+            // SVG doesn't strictly support "height: auto" like img.
+            // But if we set viewBox, it has an intrinsic ratio.
             
+            // We set the viewBox defining the coordinate system
+            svg.setAttribute("viewBox", `0 0 ${viewBoxWidth} ${viewBoxHeight}`);
+            
+            // This forces the SVG to scale uniformly to fit the container width
+            svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
+
             layoutData.commands.forEach(cmd => {
                 if (cmd.type === 'line') {
                     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -107,13 +116,20 @@ class MiniFQS extends HTMLElement {
             });
 
             container.appendChild(svg);
-            console.log('Render: SVG Appended');
+            
+            this.dispatchEvent(new CustomEvent('fqs-load', { 
+                bubbles: true, 
+                detail: { height: viewBoxHeight, width: viewBoxWidth } 
+            }));
 
         } catch (e) {
-            console.error('Render Error:', e);
+            console.error(e);
             const errDiv = document.createElement('div');
             errDiv.className = 'error';
             errDiv.textContent = `Error: ${e.message}`;
+            if (e.location) {
+                 errDiv.textContent += `\nLine: ${e.location.start.line}`;
+            }
             container.appendChild(errDiv);
         }
     }
