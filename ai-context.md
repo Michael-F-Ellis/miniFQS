@@ -1,4 +1,4 @@
-Here is the Context Summary. To continue development in a new chat, paste the block below, followed immediately by the contents of your source files (`fqs.pegjs`, `build.js`, `layout.js`, `mini-fqs.js`, and `index.html`).
+
 
 ***
 
@@ -47,4 +47,6 @@ Here is the Context Summary. To continue development in a new chat, paste the bl
 ***
 
 **Instruction for next session:**
-"We are continuing development on miniFQS. Above is the project context. Below are the current source files. Please ingest this state."
+We are continuing development on miniFQS. Above is the project context. Below are the current source files: (`fqs.pegjs`, `build.js`, `layout.js`, `mini-fqs.js`, and `index.html`). Please ingest this state.
+
+I've found it productive to ask you to paraphrase my prompts in the manner of a skilled human listener and ask clarifying questions as needed. Please do this throughout the chat before generating code. 

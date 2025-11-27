@@ -1,7 +1,7 @@
 const fs = require('fs');
 const peggy = require('peggy');
 
-const grammarFile = 'grammar.pegjs'; // Ensure this matches your actual grammar filename
+const grammarFile = 'fqs.pegjs'; // Ensure this matches your actual grammar filename
 const outputFile = 'parser.js';
 
 try {
