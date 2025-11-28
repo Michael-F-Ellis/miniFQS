@@ -102,7 +102,7 @@
 
         /* When active, editor takes 40% width (or 50%, adjustable) */
         #workspace.editor-open #editor-pane {
-            width: 40%;
+            width: 50%;
             min-width: 300px;
         }
 
@@ -113,11 +113,11 @@
             border: none;
             padding: 15px;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 14px;
+            font-size: 12px;
             line-height: 1.5;
             outline: none;
             color: #333;
-            white-space: pre;
+            white-space: pre-wrap;
             overflow-x: auto;
         }
 
@@ -214,7 +214,8 @@
                 <mini-fqs id="score-renderer"></mini-fqs>
             </div>
             <div id="editor-pane">
-                <textarea id="source-editor" spellcheck="false" placeholder="Enter FQS code here..."></textarea>
+                <textarea id="source-editor" spellcheck="false" wrap="soft"
+                    placeholder="Enter FQS code here..."></textarea>
             </div>
         </div>
     </div>

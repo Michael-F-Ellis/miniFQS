@@ -316,6 +316,14 @@ function layoutBlock(block, startY) {
                 const segmentX = startX + (segmentStartIdx * fontW);
 
                 if (isAttack) {
+                    // FIX: Consume Key Signatures (Metadata) before looking for Pitch
+                    // If we encounter a KeySig, update state and move to next element
+                    while (pitchElements[pitchIdx] && pitchElements[pitchIdx].type === 'KeySignature') {
+                        alterations.keySig = pitchElements[pitchIdx];
+                        // Usually key changes mid-line might imply a measure reset contextually, 
+                        // but strictly speaking, key signature changes accidentals from that point on.
+                        pitchIdx++;
+                    }
                     const pElem = pitchElements[pitchIdx];
 
                     if (pElem && pElem.type === 'Pitch') {
