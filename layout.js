@@ -101,8 +101,10 @@ function layoutScore(ast) {
         });
     }
 
-    // 2. Layout Title (Now that we know the width)
+    // 2. Layout Title (Now that we know the width) Also must handle
+    // the special case of a bare title.
     if (ast.title) {
+        if (maxScoreWidth == 0) { maxScoreWidth = 400; } // So bare title won't be ridiculously large.
         // Calculate Center X based on ViewBox logic (Width + 50 margin)
         // ViewBox Width = maxScoreWidth + 50
         // Center = (maxScoreWidth + 50) / 2

@@ -15,7 +15,7 @@
 Score
   = title:TitleBlock
     sep:BlockSeparator
-    blocks:MusicBlock|1.., BlockSeparator| EmptyLines
+    blocks:MusicBlock|0.., BlockSeparator| EmptyLines
     
     {
       return {

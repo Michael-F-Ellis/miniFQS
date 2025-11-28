@@ -40,6 +40,51 @@ class MiniFQS extends HTMLElement {
         this.render();
     }
 
+    preprocess() {
+        // For interactive editing, we need to make sure the parser
+        // receives grammatically correct input whenever possible.
+        // Since the parser requires lyric and pitch lines to have a barline
+        // as the last non-whitespace char, we will scan this._score
+        // and append a barline when one isn't present.
+
+        let processedScore = this._score;
+        const lines = processedScore.split('\n');
+        const newLines = [];
+        let titleFound = false;
+
+        lines.forEach(line => {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) {
+                newLines.push(trimmedLine); // preserve empty lines
+                return;
+            }
+            if (!titleFound) {
+                newLines.push(trimmedLine);
+                titleFound = true;
+                return;
+            }
+            if (trimmedLine.startsWith('counter:')) {
+                newLines.push(trimmedLine);
+                return;
+            }
+            // If we get to here, it's a lyric or pitch line.
+            // Check if the last non-whitespace character is a barline '|'
+            const lastChar = trimmedLine.slice(-1);
+            if (lastChar !== '|') {
+                // Append a barline if missing
+                newLines.push(trimmedLine + ' |');
+            } else {
+                newLines.push(trimmedLine);
+            }
+        });
+
+        // Update _score only if changes were made
+        const newScore = newLines.join('\n');
+        if (newScore !== this._score) {
+            this._score = newScore;
+            console.log("Score preprocessed: Barlines added.");
+        }
+    }
     render() {
         this.shadowRoot.innerHTML = `
             <style>
@@ -62,10 +107,11 @@ class MiniFQS extends HTMLElement {
         }
 
         try {
+            this.preprocess();
             const ast = parse(this._score);
             const layoutData = layoutScore(ast);
-            
-            const viewBoxWidth = layoutData.width + 50; 
+
+            const viewBoxWidth = layoutData.width + 50;
             const viewBoxHeight = layoutData.height;
 
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -88,23 +134,23 @@ class MiniFQS extends HTMLElement {
                     text.setAttribute("x", cmd.x);
                     text.setAttribute("y", cmd.y);
                     text.setAttribute("fill", cmd.color);
-                    text.style.font = cmd.font; 
-                    
+                    text.style.font = cmd.font;
+
                     // NEW: Handle Text Anchor (Centering)
                     if (cmd.anchor) {
                         text.setAttribute("text-anchor", cmd.anchor);
                     }
-                    
+
                     text.textContent = cmd.text;
                     svg.appendChild(text);
                 }
             });
 
             container.appendChild(svg);
-            
-            this.dispatchEvent(new CustomEvent('fqs-load', { 
-                bubbles: true, 
-                detail: { height: viewBoxHeight, width: viewBoxWidth } 
+
+            this.dispatchEvent(new CustomEvent('fqs-load', {
+                bubbles: true,
+                detail: { height: viewBoxHeight, width: viewBoxWidth }
             }));
 
         } catch (e) {
@@ -113,7 +159,7 @@ class MiniFQS extends HTMLElement {
             errDiv.className = 'error';
             errDiv.textContent = `Error: ${e.message}`;
             if (e.location) {
-                 errDiv.textContent += `\nLine: ${e.location.start.line}`;
+                errDiv.textContent += `\nLine: ${e.location.start.line}`;
             }
             container.appendChild(errDiv);
         }
