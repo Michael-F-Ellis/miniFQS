@@ -2,6 +2,27 @@
 // Additional functionality for the tutorial pages
 
 document.addEventListener('DOMContentLoaded', function () {
+	// Initialize FQS examples from data attributes
+	function initializeFQSExamples() {
+		const examples = document.querySelectorAll('.example[data-fqs-code]');
+
+		examples.forEach(example => {
+			const fqsCode = example.getAttribute('data-fqs-code');
+
+			// Populate code display
+			const codeElement = example.querySelector('.fqs-source');
+			if (codeElement) {
+				codeElement.textContent = fqsCode;
+			}
+
+			// Populate mini-fqs element
+			const renderElement = example.querySelector('.fqs-render');
+			if (renderElement) {
+				renderElement.setAttribute('score', fqsCode);
+			}
+		});
+	}
+
 	// Smooth scrolling for navigation links
 	const navLinks = document.querySelectorAll('nav a[href^="#"]');
 
@@ -179,6 +200,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     `;
 	document.head.appendChild(printStyle);
+
+	// Initialize FQS examples
+	initializeFQSExamples();
 
 	console.log('miniFQS Tutorial JavaScript loaded successfully');
 });
