@@ -1,6 +1,8 @@
 // miniFQS Tutorial JavaScript
 // Additional functionality for the tutorial pages
 
+import { initializeABCForTutorial } from './abcjs-integration.js';
+
 document.addEventListener('DOMContentLoaded', function () {
 	// Initialize FQS examples from data attributes
 	function initializeFQSExamples() {
@@ -203,6 +205,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Initialize FQS examples
 	initializeFQSExamples();
+
+	// Initialize ABC rendering for all examples
+	try {
+		initializeABCForTutorial();
+	} catch (error) {
+		console.error('Error initializing ABC for tutorial:', error);
+	}
 
 	console.log('miniFQS Tutorial JavaScript loaded successfully');
 });

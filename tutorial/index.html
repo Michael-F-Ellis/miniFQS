@@ -6,6 +6,33 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>miniFQS Tutorial for Choral Singers</title>
 	<link rel="stylesheet" href="css/styles.css">
+	<script>
+		// Set a global flag to indicate abcjs is being loaded
+		window.abcjsLoading = true;
+	</script>
+	<script src="lib/abcjs-basic-min.js"
+		onload="window.abcjsLoadedFlag = true; window.dispatchEvent(new Event('abcjsLoaded'))"
+		onerror="window.dispatchEvent(new CustomEvent('abcjsError', {detail: 'Failed to load abcjs library from local file'}))">
+		</script>
+	<!-- Fallback to CDN if local loading fails -->
+	<script>
+		// If local script fails, try loading from CDN after a delay
+		window.addEventListener('abcjsError', function () {
+			console.log('Local abcjs loading failed, trying CDN...');
+			var script = document.createElement('script');
+			script.src = 'https://cdn.jsdelivr.net/npm/abcjs@6.5.2/dist/abcjs-basic-min.js';
+			script.onload = function () {
+				console.log('abcjs loaded from CDN');
+				window.abcjsLoadedFlag = true;
+				window.dispatchEvent(new Event('abcjsLoaded'));
+			};
+			script.onerror = function () {
+				console.error('Failed to load abcjs from CDN');
+				window.dispatchEvent(new CustomEvent('abcjsError', { detail: 'Failed to load abcjs from both local and CDN' }));
+			};
+			document.head.appendChild(script);
+		}, { once: true });
+	</script>
 	<script type="module" src="../mini-fqs.js"></script>
 </head>
 
@@ -146,7 +173,7 @@ K0  | c c  | d    | e f c   |">
 		<p>miniFQS Tutorial &copy; 2025</p>
 	</footer>
 
-	<script src="js/tutorial.js"></script>
+	<script type="module" src="js/tutorial.js"></script>
 </body>
 
 </html>

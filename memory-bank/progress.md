@@ -36,8 +36,16 @@
 
 3. **Basic Example Implemented**
    - "Basic Structure" section has working example
-   - Three-column layout (FQS syntax, rendering, explanation)
+   - Four-column layout (FQS syntax, rendering, explanation, ABC notation)
    - Demonstrates title, lyric lines, pitch lines, counter
+
+4. **ABC Notation Integration (New)**
+   - Added abcjs library for rendering standard notation and MIDI playback
+   - Created `abc-converter.js` to convert FQS AST to ABC notation
+   - Created `abcjs-integration.js` for rendering and playback controls with robust loading (timeout, polling, CDN fallback)
+   - Added ABC notation column to tutorial examples
+   - Includes tempo control and progress bar for MIDI playback
+   - Fixed library loading timing issue by checking for `window.abcjs.renderAbc` availability
 
 ## What's Left to Build
 
@@ -109,17 +117,21 @@
 ## Known Issues
 
 ### Technical Issues
-1. **Rendering Limitations**
+1. **ABCJS Loading Timing**
+   - Library loads but `window.abcjs.renderAbc` may not be immediately available (being addressed)
+   - Need to ensure CDN fallback works reliably
+
+2. **Rendering Limitations**
    - Complex rhythms may have spacing issues
    - Accidentals coloring system needs verification
    - Some edge cases in pitch calculation
 
-2. **Browser Compatibility**
+3. **Browser Compatibility**
    - Requires modern browsers (ES6 modules, Web Components)
    - No polyfills for older browsers
    - Mobile browser testing incomplete
 
-3. **Performance Considerations**
+4. **Performance Considerations**
    - Large scores may render slowly
    - No optimization for frequent updates
 
