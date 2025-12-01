@@ -1,0 +1,146 @@
+# System Patterns
+
+## Architecture Overview
+miniFQS follows a modular, web-centric architecture with clear separation between parsing, layout, and rendering. The system is designed to be lightweight and dependency-free, using vanilla JavaScript and web standards.
+
+## Core Components
+
+### 1. Parser System (fqs.pegjs → parser.js)
+- **Pattern**: PEG.js grammar definition compiled to a pure JavaScript parser.
+- **Input**: FQS text notation (multiline string).
+- **Output**: Abstract Syntax Tree (AST) representing the musical score.
+- **Error Handling**: Detailed syntax error reporting with line/column information.
+- **Key Design**: The grammar is defined in a declarative PEG syntax, then compiled to an efficient parser.
+
+### 2. Layout Engine (layout.js)
+- **Pattern**: Procedural layout algorithm that converts AST to rendering commands.
+- **Input**: AST from parser.
+- **Output**: Array of drawing commands (lines, text) with coordinates and styles.
+- **Key Algorithms**:
+  - **Beat Tuple Processing**: Handles rhythmic subdivisions and syllable alignment.
+  - **Pitch Calculation**: Uses LilyPond-style pitch determination with octave tracking.
+  - **Staff Layout**: Positions notes relative to staff lines based on pitch and accidentals.
+  - **Accidental State Management**: Tracks key signatures and measure-level accidentals.
+
+### 3. Rendering System (mini-fqs.js)
+- **Pattern**: Custom Web Component with Shadow DOM encapsulation.
+- **Input**: FQS text via attribute or property.
+- **Output**: SVG rendering inside component's shadow DOM.
+- **Lifecycle**:
+  1. Attribute/property change triggers `render()`.
+  2. `render()` calls parser, then layout, then generates SVG elements.
+  3. SVG is injected into shadow DOM container.
+  4. Custom event `fqs-load` dispatched with dimensions.
+
+### 4. Tutorial System (tutorial/)
+- **Pattern**: Static HTML with dynamic JavaScript for example synchronization.
+- **Data Flow**: Single-source FQS examples stored in `data-fqs-code` attributes.
+- **JavaScript**: `initializeFQSExamples()` reads data attributes and populates both code display and mini-fqs elements.
+
+## Data Flow Patterns
+
+### Score Processing Pipeline
+```
+FQS Text → Parser (AST) → Layout Engine (Commands) → SVG Generation → DOM
+```
+
+### State Management
+- **Parser**: Stateless, pure function `parse(text)`.
+- **Layout**: Stateful within a score (tracking pitch context, accidental state).
+- **Component**: Manages its own score text and re-renders on changes.
+
+### Error Handling Pattern
+- **Parser Errors**: Thrown as `SyntaxError` with location info.
+- **Layout Errors**: Caught and displayed as error message in component.
+- **User Feedback**: Error messages shown in red box within component.
+
+## Design Patterns in Use
+
+### 1. Custom Element Pattern
+- `<mini-fqs>` extends `HTMLElement`.
+- Uses Shadow DOM for style encapsulation.
+- Observable attribute `score` triggers re-render.
+
+### 2. Builder Pattern (Layout)
+- Layout engine builds an array of drawing commands.
+- Each command is a simple object with type and properties.
+
+### 3. State Machine Pattern (AlterationState)
+- Tracks accidentals within a measure.
+- Resets at each barline.
+- Combines key signature with explicit accidentals.
+
+### 4. Strategy Pattern (Pitch Calculation)
+- Different algorithms for pitch placement (LilyPond rules).
+- Octave shift handling via `^` and `/` modifiers.
+
+### 5. Observer Pattern (Tutorial)
+- JavaScript observes DOM and initializes examples after load.
+- Copy buttons are dynamically injected and manage their own state.
+
+## Integration Patterns
+
+### Module Dependencies
+```
+mini-fqs.js → parser.js, layout.js
+tutorial/index.html → tutorial/js/tutorial.js, ../mini-fqs.js
+```
+
+### Build Process
+- Manual regeneration of parser.js from fqs.pegjs (when grammar changes).
+- No complex build system; simple HTTP server suffices for development.
+
+## Key Technical Decisions
+
+### 1. PEG.js over Handwritten Parser
+- **Reason**: Formal grammar specification, maintainable, good error messages.
+- **Trade-off**: Larger generated parser file.
+
+### 2. SVG over Canvas
+- **Reason**: Scalable, styleable, easier debugging.
+- **Trade-off**: DOM overhead for complex scores.
+
+### 3. Vanilla JavaScript over Framework
+- **Reason**: Minimal dependencies, faster load, easier integration.
+- **Trade-off**: More boilerplate for component lifecycle.
+
+### 4. Shadow DOM for Encapsulation
+- **Reason**: Style isolation, predictable rendering.
+- **Trade-off**: More complex styling inheritance.
+
+## Performance Considerations
+
+### Parsing Performance
+- PEG.js parser is efficient for typical score sizes (single vocal lines).
+- Parsing happens synchronously but is fast enough for interactive editing.
+
+### Rendering Performance
+- SVG rendering is acceptable for single-line scores.
+- Could become slow for multi-part scores (future consideration).
+
+### Memory Usage
+- Minimal, as most data structures are temporary during rendering.
+- AST and layout commands are discarded after SVG generation.
+
+## Scalability Patterns
+
+### Horizontal Scaling (More Features)
+- Grammar extensions for new notation elements.
+- Layout engine extensions for additional symbols.
+- Tutorial additions for new concepts.
+
+### Vertical Scaling (Larger Scores)
+- Current design optimized for single-line scores.
+- Multi-part scores would require significant architecture changes.
+
+## Testing Patterns
+
+### Grammar Testing
+- `validate-parser.html` provides interactive testing of the parser.
+- Example scores in tutorial serve as test cases.
+
+### Integration Testing
+- Manual testing by rendering example scores.
+- Visual verification against expected output.
+
+This system patterns document captures the architectural decisions and patterns that make miniFQS work, providing a blueprint for understanding and extending the system.
