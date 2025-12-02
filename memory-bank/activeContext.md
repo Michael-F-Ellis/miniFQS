@@ -27,6 +27,11 @@ The primary focus is on **tutorial development and user education**. The core mi
 - **Established memory bank**: Created initial project brief and supporting context documents.
 - **Updated project structure**: Documented current state and future directions.
 
+### 5. Fixed ABC Octave Mapping (New)
+- **Corrected octave calculation**: Updated `abc-converter.js` to properly apply LilyPond Rule and octave shifts.
+- **Fixed ABC pitch representation**: Now correctly maps FQS pitches to ABC absolute octaves (e.g., C4 -> 'C', C5 -> 'c', C3 -> 'C,', etc.).
+- **Validated with examples**: Tested and verified with user-provided examples (`c ^c |` -> `C c |` and `/c ^c ^c ^c |` -> `C, C c c' |`).
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy
@@ -46,17 +51,21 @@ The primary focus is on **tutorial development and user education**. The core mi
 
 ## Next Immediate Steps
 
-### 1. Populate Tutorial Examples
+### 1. Address Second Problem in ABC Notation
+- The user mentioned two problems. The first (octave too high) is fixed.
+- Need clarification on the second problem to proceed with fixes.
+
+### 2. Populate Tutorial Examples
 - Add concrete examples for each tutorial section (basic structure through advanced features).
 - Ensure examples demonstrate key concepts with clear standard notation translations.
 - Test each example for accurate rendering and educational value.
 
-### 2. Enhance Tutorial Features
+### 3. Enhance Tutorial Features
 - Consider adding interactive editing: Allow users to modify FQS code and see real-time updates.
 - Add exercise sections: Provide practice opportunities with feedback.
 - Improve mobile responsiveness: Ensure tutorial works well on tablets (common for music annotation).
 
-### 3. Testing and Validation
+### 4. Testing and Validation
 - User testing: Have choral singers work through the tutorial and provide feedback.
 - Rendering validation: Verify all examples render correctly across target browsers.
 - PDF output testing: Ensure printed/saved PDFs work well with forScore, MobileSheets, etc.

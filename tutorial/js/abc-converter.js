@@ -46,6 +46,39 @@ const PITCH_BASE = {
 // Helper Functions
 // =============================================================================
 
+// Map letter to numeric index for LilyPond Rule (same as in layout.js)
+const PITCH_INDEX = { c: 0, d: 1, e: 2, f: 3, g: 4, a: 5, b: 6 };
+
+/**
+ * Calculate the octave of a pitch relative to the previous pitch using LilyPond Rule.
+ * This replicates the logic from layout.js's calculatePitch function.
+ * @param {Object} current - FQS pitch object {note: 'c', octaveShifts: '^'}
+ * @param {Object} prev - Previous pitch state {letter: 'c', octave: 0} where octave is layout octave (0 = C4)
+ * @returns {Object} {letter, octave} where octave is layout octave
+ */
+function calculatePitch(current, prev) {
+	let letter = current.note;
+	let octave = prev.octave;
+
+	// LilyPond Rule
+	const prevIdx = PITCH_INDEX[prev.letter];
+	const currIdx = PITCH_INDEX[letter];
+	const diff = currIdx - prevIdx;
+
+	if (diff > 3) octave--;
+	else if (diff < -3) octave++;
+
+	// Explicit Modifiers
+	if (current.octaveShifts) {
+		for (let char of current.octaveShifts) {
+			if (char === '^') octave++;
+			if (char === '/') octave--;
+		}
+	}
+
+	return { letter, octave };
+}
+
 /**
  * Convert FQS key signature to ABC key signature
  * @param {Object} keySig - FQS key signature object {accidental: '#', count: 2} or {accidental: null, count: 0}
@@ -68,80 +101,53 @@ function convertKeySignature(keySig) {
 }
 
 /**
- * Convert FQS pitch to ABC pitch with octave
- * @param {Object} pitch - FQS pitch object {note: 'c', accidental: '#', octaveShifts: '^'}
- * @param {number} baseOctave - The base octave (default 4 for middle C)
- * @returns {string} ABC pitch (e.g., "c'", "^f", "=B")
+ * Convert an absolute pitch (note + layout octave) to ABC notation.
+ * Layout octave: 0 corresponds to C4, 1 to C5, -1 to C3, etc.
+ * In ABC: C4 is 'C', C5 is 'c', C6 is 'c'', C3 is 'C,', C2 is 'C,,', etc.
+ * @param {string} note - Note letter (lowercase a-g)
+ * @param {number} layoutOctave - The octave number from calculatePitch
+ * @param {string} accidental - FQS accidental ('#', '&', '##', '&&', '%')
+ * @returns {string} ABC pitch string (e.g., "C", "c'", "^f", "_B,")
  */
-function convertPitch(pitch, baseOctave = 4) {
-	if (!pitch) {
-		return '';
-	}
+function convertAbsolutePitch(note, layoutOctave, accidental) {
+	// Convert note to uppercase base letter
+	let abcNote = note.toUpperCase();
 
-	let abcNote = PITCH_BASE[pitch.note] || pitch.note.toUpperCase();
-	let octave = baseOctave;
-
-	// Adjust octave based on note position (simplified)
-	// In FQS, the staff shows G3 to G4, so we map:
-	// G3 -> G, A3 -> A, B3 -> B, C4 -> c, D4 -> d, E4 -> e, F4 -> f, G4 -> g
-	// This is a simplification; we'll use a lookup table
-	const noteToOctaveOffset = {
-		'c': 0,  // C4 -> c
-		'd': 0,  // D4 -> d
-		'e': 0,  // E4 -> e
-		'f': 0,  // F4 -> f
-		'g': 0,  // G4 -> g
-		'a': 0,  // A4 -> a
-		'b': 0   // B4 -> b
-	};
-
-	// Apply octave shifts
-	if (pitch.octaveShifts) {
-		for (const shift of pitch.octaveShifts) {
-			if (shift === '^') octave++;
-			if (shift === '/') octave--;
-		}
-	}
-
-	// Convert to ABC notation
-	// ABC uses: , for lower octave, ' for higher octave
-	// Middle C is c
-	// Below middle C: C, B,, etc.
-	// Above middle C: c', d', etc.
-	let abcPitch = abcNote;
-
-	if (octave > 4) {
-		abcPitch = abcPitch.toLowerCase();
-		for (let i = 4; i < octave; i++) {
+	// Map layout octave to absolute octave
+	let abcPitch;
+	if (layoutOctave > 0) {
+		// Above C4: lowercase plus apostrophes (C5 = c, C6 = c', etc.)
+		abcPitch = abcNote.toLowerCase();
+		// Number of apostrophes = layoutOctave - 1
+		for (let i = 0; i < layoutOctave - 1; i++) {
 			abcPitch += "'";
 		}
-	} else if (octave < 4) {
-		abcPitch = abcPitch.toUpperCase();
-		for (let i = octave; i < 4; i++) {
+	} else if (layoutOctave < 0) {
+		// Below C4: uppercase plus commas (C3 = C,, C2 = C,,, etc.)
+		abcPitch = abcNote;
+		// Number of commas = -layoutOctave
+		for (let i = 0; i < -layoutOctave; i++) {
 			abcPitch += ",";
 		}
 	} else {
-		// octave 4
-		if (abcNote >= 'A' && abcNote <= 'G') {
-			// For octave 4, notes from C4 to B4: c, d, e, f, g, a, b
-			abcPitch = abcNote.toLowerCase();
-		}
+		// Exactly C4: uppercase
+		abcPitch = abcNote;
 	}
 
 	// Add accidental
-	let accidental = '';
-	if (pitch.accidental) {
-		switch (pitch.accidental) {
-			case '#': accidental = '^'; break;
-			case '&': accidental = '_'; break;
-			case '##': accidental = '^^'; break;
-			case '&&': accidental = '__'; break;
-			case '%': accidental = '='; break;
-			default: accidental = '';
+	let abcAccidental = '';
+	if (accidental) {
+		switch (accidental) {
+			case '#': abcAccidental = '^'; break;
+			case '&': abcAccidental = '_'; break;
+			case '##': abcAccidental = '^^'; break;
+			case '&&': abcAccidental = '__'; break;
+			case '%': abcAccidental = '='; break;
+			default: abcAccidental = '';
 		}
 	}
 
-	return accidental + abcPitch;
+	return abcAccidental + abcPitch;
 }
 
 /**
@@ -223,19 +229,28 @@ export function convertToABC(ast) {
 		const keySig = block.pitches.keySignature;
 		lines.push(convertKeySignature(keySig));
 
-		// We need to combine lyrics and pitches
-		// This is a simplified version - we'll just extract the melody from pitches
-		// ignoring lyrics for now
-
 		const pitchElements = block.pitches.elements || [];
 		let abcNotes = [];
 
+		// Initialize previous pitch state: virtual C4 (layout octave 0)
+		let prevPitchState = { letter: 'c', octave: 0 };
+
 		for (const element of pitchElements) {
 			if (element.type === 'Pitch') {
-				const abcPitch = convertPitch(element);
+				// Calculate the current pitch's octave using LilyPond rule
+				const currentPitch = calculatePitch(element, prevPitchState);
+				// Convert to ABC notation
+				const abcPitch = convertAbsolutePitch(
+					currentPitch.letter,
+					currentPitch.octave,
+					element.accidental
+				);
 				abcNotes.push(abcPitch);
+				// Update previous pitch state for next calculation
+				prevPitchState = currentPitch;
 			} else if (element.type === 'Barline') {
 				abcNotes.push('|');
+				// Note: octave state continues across barlines
 			}
 		}
 
