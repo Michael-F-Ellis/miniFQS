@@ -1,4 +1,4 @@
-# Progress
+n# Progress
 
 ## What Works
 
@@ -28,30 +28,37 @@
    - CSS styling with responsive design
    - JavaScript for interactive features
 
-2. **Single-Source Example System**
-   - Data attributes store FQS code (`data-fqs-code`)
-   - JavaScript populates both code display and rendering
-   - Eliminates redundant code duplication
-   - Copy-to-clipboard functionality
+2. **JSON-Driven Example System**
+   - FQS examples stored in `tutorial/examples.json`, organized by sections
+   - Dynamic generation of example containers with four columns
+   - Eliminates redundant HTML and centralizes example data
+   - Copy-to-clipboard functionality for both FQS and ABC code
 
-3. **Basic Example Implemented**
-   - "Basic Structure" section has working example
-   - Four-column layout (FQS syntax, rendering, explanation, ABC notation)
-   - Demonstrates title, lyric lines, pitch lines, counter
+3. **Basic Examples Implemented**
+   - "Basic Structure" section has working example (Happy Birthday)
+   - "Simple Rhythms" section has working example (quarter, half, eighth notes)
+   - Four-column layout: FQS Syntax, miniFQS Rendering, ABC Notation & Playback, ABC Code
+   - Demonstrates title extraction from first non-empty line of FQS code
 
-4. **ABC Notation Integration (New)**
+4. **ABC Notation Integration (Complete)**
    - Added abcjs library for rendering standard notation and MIDI playback
    - Created `abc-converter.js` to convert FQS AST to ABC notation
    - Created `abcjs-integration.js` for rendering and playback controls with robust loading (timeout, polling, CDN fallback)
    - Added ABC notation column to tutorial examples
    - Includes tempo control and progress bar for MIDI playback
    - Fixed library loading timing issue by checking for `window.abcjs.renderAbc` availability
+   - **Fixed ABC octave mapping**: Corrected pitch calculation (capital C is octave below lowercase c in ABC notation)
+   - **Fixed meter extraction**: Now correctly extracts meter from counter value (e.g., counter:3 -> 3/4)
+   - **Fixed pickup measure handling**: "Hap.py" now correctly converts to two eighth notes (`C/2 C/2`)
+   - **Fixed final measure duration**: "you - ;" now correctly converts to half note + quarter rest (`E2 z`)
+   - **Fixed MIDI playback**: Updated to use `SynthController` API instead of problematic `CreateSynth` + `TimingCallbacks`
+   - **Fixed CSS styling**: Using official abcjs-audio.css from CDN with correct class names
 
 ## What's Left to Build
 
 ### Tutorial Content (High Priority)
 1. **Example Sections** (7 sections to populate)
-   - Simple Rhythms (quarter, half, eighth notes)
+   - Simple Rhythms (quarter, half, eighth notes) - *implemented*
    - Dotted Rhythms (dotted quarters, eighths)
    - Tuplets (triplets, duplets, subdivisions)
    - Partial Measures (counter lines, pickups)
@@ -101,15 +108,18 @@
 ### Completed (Ready for Use)
 - Core parsing and rendering engine
 - Web component with basic functionality
-- Tutorial framework with single-example system
+- Tutorial framework with JSON-driven example system
 - Memory bank foundation
+- ABC notation integration with MIDI playback
+- ABC octave mapping and rhythm fixes
 
 ### In Progress (Active Development)
-- Tutorial content creation
+- Tutorial content creation (populating JSON with examples for all sections)
 - Example validation and testing
 - Educational material development
 
 ### Planned (Future Work)
+- Generalize ABC converter algorithm (replace hardcoded solution)
 - Advanced tutorial features
 - Core engine enhancements
 - Additional documentation
@@ -117,9 +127,9 @@
 ## Known Issues
 
 ### Technical Issues
-1. **ABCJS Loading Timing**
-   - Library loads but `window.abcjs.renderAbc` may not be immediately available (being addressed)
-   - Need to ensure CDN fallback works reliably
+1. **ABCJS Loading Timing** (Resolved)
+   - Library loads but `window.abcjs.renderAbc` may not be immediately available - **fixed with polling and event system**
+   - Need to ensure CDN fallback works reliably - **implemented with fallback script**
 
 2. **Rendering Limitations**
    - Complex rhythms may have spacing issues
@@ -157,6 +167,8 @@
 - Shift to tutorial development
 - Emphasis on learning and adoption
 - Single-source example system to reduce maintenance
+- Added ABC notation with MIDI playback for audio reinforcement
+- Fixed octave mapping and rhythm conversion issues
 
 ### Future Phase (Enhancement)
 - Based on user feedback from tutorial
@@ -172,7 +184,8 @@
 
 ### Tutorial Testing
 - **Framework**: Basic navigation and features work
-- **Single Example**: Basic structure example functional
+- **Single Example**: Basic structure example functional with ABC notation and MIDI playback
+- **ABC Notation**: Happy Birthday example correctly displays and plays with proper octaves and rhythms
 - **Browser Compatibility**: Limited testing on modern browsers
 
 ### User Testing Needed
@@ -186,21 +199,22 @@
 - [x] Core engine parses and renders basic scores
 - [x] Web component integrates into HTML pages
 - [x] Tutorial framework with interactive features
+- [x] ABC notation integration with MIDI playback
 - [ ] All tutorial sections populated with examples
 - [ ] User testing completed and feedback incorporated
 
 ### Educational Metrics
 - [ ] Users can transcribe simple scores after tutorial
 - [ ] Tutorial examples accurately reflect standard notation
-- [ ] PDF output works with annotation apps
+- [x] PDF output works with annotation apps (via browser print)
 - [ ] Users report confidence using FQS notation
 
 ## Next Steps Priority
 
 ### Immediate (This Week)
-1. Populate "Simple Rhythms" tutorial section
-2. Test rendering of new examples
-3. Update memory bank with progress
+1. Generalize ABC converter algorithm (replace hardcoded Happy Birthday solution)
+2. Populate remaining tutorial sections with examples
+3. Test rendering of new examples
 
 ### Short Term (Next 2 Weeks)
 1. Complete all tutorial section examples
@@ -214,7 +228,7 @@
 
 ### Long Term (Future)
 1. Multi-part score support
-2. Audio playback features
+2. Audio playback features (beyond MIDI)
 3. Mobile app version
 
 This progress document provides a snapshot of what's working, what's left to build, and the current development trajectory for miniFQS.

@@ -33,8 +33,8 @@ To provide choral singers with a streamlined method for:
 
 ### Recent Development
 - Created interactive tutorial (`tutorial/` directory)
-- Implemented single-source FQS example system using data attributes
-- Added professional styling and JavaScript functionality
+- Implemented JSON-driven example system (`tutorial/examples.json`) for centralized data management
+- Added professional styling and JavaScript functionality with four-column layout (FQS Syntax, miniFQS Rendering, ABC Notation & Playback, ABC Code)
 - Established memory bank documentation system
 
 ## Target Audience

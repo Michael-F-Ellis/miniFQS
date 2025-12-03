@@ -157,8 +157,15 @@ section h2 {
 	background-color: white;
 }
 
-.explanation {
-	background-color: #f8f9fa;
+.abc-code pre {
+	background-color: #282c34;
+	color: #abb2bf;
+	padding: 1rem;
+	border-radius: 4px;
+	overflow-x: auto;
+	font-family: 'Courier New', monospace;
+	font-size: 0.9rem;
+	min-height: 150px;
 }
 
 .example-placeholder {

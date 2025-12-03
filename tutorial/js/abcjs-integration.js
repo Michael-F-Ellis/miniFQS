@@ -4,12 +4,6 @@
 import { parse } from '../../parser.js';
 import { convertToABC } from './abc-converter.js';
 
-// Global variables for MIDI control
-let currentAudioContext = null;
-let currentSynth = null;
-let isPlaying = false;
-let currentTempo = 120;
-
 // =============================================================================
 // Helper Functions for Loading ABCJS
 // =============================================================================
@@ -106,21 +100,37 @@ async function waitForABCJS() {
 // =============================================================================
 
 /**
+ * Get ABC notation string from FQS code
+ * @param {string} fqsCode - The FQS code to convert
+ * @returns {string} ABC notation string
+ */
+export function getABCNotation(fqsCode) {
+	try {
+		const ast = parse(fqsCode);
+		const abcNotation = convertToABC(ast);
+		return abcNotation;
+	} catch (error) {
+		console.error('Error converting FQS to ABC notation:', error);
+		return `Error: ${error.message}`;
+	}
+}
+
+/**
  * Render ABC notation for a given FQS code
  * @param {string} fqsCode - The FQS code to convert and render
  * @param {HTMLElement} container - The DOM element to render into
- * @returns {Object} The ABCJS visual object
+ * @param {string} abcNotation - Optional ABC notation string (if already computed)
+ * @returns {Object} The ABCJS visual object (first tune)
  */
-export async function renderABCFromFQS(fqsCode, container) {
+export async function renderABCFromFQS(fqsCode, container, abcNotation = null) {
 	try {
 		// Wait for abcjs to be available
 		await waitForABCJS();
 
-		// Parse the FQS code to AST
-		const ast = parse(fqsCode);
-
-		// Convert AST to ABC notation
-		const abcNotation = convertToABC(ast);
+		// Get ABC notation if not provided
+		if (!abcNotation) {
+			abcNotation = getABCNotation(fqsCode);
+		}
 
 		// Clear container
 		container.innerHTML = '';
@@ -130,18 +140,12 @@ export async function renderABCFromFQS(fqsCode, container) {
 		abcDiv.className = 'abc-notation';
 		container.appendChild(abcDiv);
 
-		// Render the ABC notation
-		const visualObj = window.ABCJS.renderAbc(abcDiv, abcNotation, {
+		// Render the ABC notation and get the first tune's visual object
+		const visualObjArray = window.ABCJS.renderAbc(abcDiv, abcNotation, {
 			responsive: 'resize',
 			scale: 0.8
 		});
-
-		// Also store the ABC notation for potential debugging
-		const debugPre = document.createElement('pre');
-		debugPre.className = 'abc-source';
-		debugPre.textContent = abcNotation;
-		debugPre.style.display = 'none';
-		container.appendChild(debugPre);
+		const visualObj = visualObjArray[0];
 
 		console.log('ABC notation generated:', abcNotation);
 		return visualObj;
@@ -154,151 +158,48 @@ export async function renderABCFromFQS(fqsCode, container) {
 }
 
 /**
- * Setup MIDI playback for a given ABC notation
- * @param {string} abcNotation - The ABC notation string
+ * Setup MIDI playback for a given ABC visual object
+ * @param {Object} visualObj - The ABCJS visual object (first tune from renderAbc)
  * @param {HTMLElement} container - The container for the playback controls
- * @returns {Object} The timing callbacks object
  */
-export function setupMIDIPlayback(abcNotation, container) {
+export function setupMIDIPlayback(visualObj, container) {
 	// Clear any existing controls
 	container.innerHTML = '';
 
-	// Create playback controls
+	// Create a div for the synth controls (with the class abcjs expects)
 	const controlsDiv = document.createElement('div');
-	controlsDiv.className = 'playback-controls';
-
-	// Play button
-	const playButton = document.createElement('button');
-	playButton.className = 'play-button';
-	playButton.textContent = 'Play';
-	playButton.addEventListener('click', () => togglePlayback(abcNotation, playButton, progressBar));
-
-	// Stop button
-	const stopButton = document.createElement('button');
-	stopButton.className = 'stop-button';
-	stopButton.textContent = 'Stop';
-	stopButton.addEventListener('click', stopPlayback);
-
-	// Tempo control
-	const tempoDiv = document.createElement('div');
-	tempoDiv.className = 'tempo-control';
-	tempoDiv.innerHTML = `
-        <label for="tempo">Tempo: <span class="tempo-value">${currentTempo}</span> BPM</label>
-        <input type="range" id="tempo" min="40" max="200" value="${currentTempo}" class="tempo-slider">
-    `;
-
-	// Progress bar
-	const progressBar = document.createElement('div');
-	progressBar.className = 'playback-progress';
-	progressBar.innerHTML = '<div class="progress-bar"></div>';
-
-	controlsDiv.appendChild(playButton);
-	controlsDiv.appendChild(stopButton);
-	controlsDiv.appendChild(tempoDiv);
-	controlsDiv.appendChild(progressBar);
+	controlsDiv.className = 'abcjs-inline-audio';
 	container.appendChild(controlsDiv);
 
-	// Add tempo slider event listener
-	const tempoSlider = tempoDiv.querySelector('.tempo-slider');
-	const tempoValue = tempoDiv.querySelector('.tempo-value');
-	tempoSlider.addEventListener('input', (e) => {
-		currentTempo = parseInt(e.target.value);
-		tempoValue.textContent = currentTempo;
+	// Check if SynthController is available
+	if (!window.ABCJS.synth.SynthController) {
+		console.error('ABCJS SynthController is not available. Make sure you are using the correct version of abcjs that includes the synth module.');
+		controlsDiv.innerHTML = '<div class="error">MIDI playback not available. Check abcjs version.</div>';
+		return;
+	}
+
+	// Create the synth controller
+	const synthControl = new window.ABCJS.synth.SynthController();
+
+	// The synth control needs to be loaded into a container (the controlsDiv)
+	// The second parameter is the cursor control (optional) - we can pass null.
+	synthControl.load(controlsDiv, null, {
+		displayLoop: true,
+		displayRestart: true,
+		displayPlay: true,
+		displayProgress: true,
+		displayWarp: true
 	});
 
-	// Return the controls container for potential further manipulation
-	return controlsDiv;
-}
-
-// =============================================================================
-// MIDI Playback Control Functions
-// =============================================================================
-
-/**
- * Toggle playback of ABC notation
- * @param {string} abcNotation - The ABC notation to play
- * @param {HTMLElement} playButton - The play button element
- * @param {HTMLElement} progressBar - The progress bar container
- */
-function togglePlayback(abcNotation, playButton, progressBar) {
-	if (isPlaying) {
-		stopPlayback();
-		playButton.textContent = 'Play';
-	} else {
-		startPlayback(abcNotation, progressBar);
-		playButton.textContent = 'Pause';
-	}
-}
-
-/**
- * Start MIDI playback
- * @param {string} abcNotation - The ABC notation to play
- * @param {HTMLElement} progressBar - The progress bar container
- */
-function startPlayback(abcNotation, progressBar) {
-	// Stop any existing playback
-	stopPlayback();
-
-	// Create new audio context
-	currentAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-	currentSynth = new window.ABCJS.synth.CreateSynth();
-
-	// Set up timing callbacks for progress bar
-	const timingCallbacks = new window.ABCJS.synth.TimingCallbacks(currentAudioContext, {
-		eventCallback: function (event) {
-			if (event.type === 'beat' && event.beatNumber !== undefined) {
-				updateProgressBar(progressBar, event.beatNumber, event.totalBeats);
-			}
-		}
-	});
-
-	// Set up the synth
-	currentSynth.init({
-		audioContext: currentAudioContext,
-		visualObj: window.ABCJS.renderAbc("*", abcNotation)[0],
-		millisecondsPerMeasure: 60000 / currentTempo * 4, // Assuming 4/4 time
-	}).then(() => {
-		isPlaying = true;
-		currentSynth.start();
-		timingCallbacks.start();
-	}).catch(error => {
-		console.error('Error starting synth:', error);
-		isPlaying = false;
-	});
-}
-
-/**
- * Stop MIDI playback
- */
-function stopPlayback() {
-	if (currentSynth) {
-		currentSynth.stop();
-		currentSynth = null;
-	}
-	if (currentAudioContext) {
-		currentAudioContext.close();
-		currentAudioContext = null;
-	}
-	isPlaying = false;
-
-	// Reset all play buttons
-	document.querySelectorAll('.play-button').forEach(button => {
-		button.textContent = 'Play';
-	});
-}
-
-/**
- * Update the progress bar during playback
- * @param {HTMLElement} progressBar - The progress bar container
- * @param {number} currentBeat - The current beat number
- * @param {number} totalBeats - The total number of beats
- */
-function updateProgressBar(progressBar, currentBeat, totalBeats) {
-	const bar = progressBar.querySelector('.progress-bar');
-	if (bar && totalBeats > 0) {
-		const percentage = (currentBeat / totalBeats) * 100;
-		bar.style.width = `${percentage}%`;
-	}
+	// Set the tune for the synth control
+	synthControl.setTune(visualObj, false)
+		.then(function (response) {
+			console.log("Audio loaded for playback");
+		})
+		.catch(function (error) {
+			console.error("Error loading audio:", error);
+			controlsDiv.innerHTML = `<div class="error">Failed to load audio: ${error.message}</div>`;
+		});
 }
 
 // =============================================================================
@@ -317,48 +218,42 @@ export function initializeABCForTutorial() {
 		// Get the FQS code from the data attribute
 		const fqsCode = example.getAttribute('data-fqs-code');
 
-		// Create a new column for ABC notation
-		const abcColumn = document.createElement('div');
-		abcColumn.className = 'abc-column';
+		// Get the existing abc-column and abc-code elements
+		const abcColumn = example.querySelector('.abc-column');
+		const abcContainer = abcColumn ? abcColumn.querySelector('.abc-container') : null;
+		const abcCodeElement = example.querySelector('.abc-code code.abc-source');
 
-		// Add heading
-		const heading = document.createElement('h4');
-		heading.textContent = 'ABC Notation & Playback';
-		abcColumn.appendChild(heading);
+		// If the required elements don't exist, log error and skip
+		if (!abcContainer || !abcCodeElement) {
+			console.error('Missing required elements for ABC rendering in example:', example);
+			return;
+		}
 
-		// Create container for ABC rendering
-		const abcContainer = document.createElement('div');
-		abcContainer.className = 'abc-container';
-		abcColumn.appendChild(abcContainer);
+		// Generate ABC notation
+		const abcNotation = getABCNotation(fqsCode);
 
-		// Try to render ABC notation
-		// Try to render ABC notation
-		renderABCFromFQS(fqsCode, abcContainer)
+		// Populate the ABC code column
+		abcCodeElement.textContent = abcNotation;
+
+		// Try to render ABC notation in the visual container
+		renderABCFromFQS(fqsCode, abcContainer, abcNotation)
 			.then((visualObj) => {
 				// If successful, add playback controls
 				if (visualObj) {
 					const playbackContainer = document.createElement('div');
 					playbackContainer.className = 'playback-container';
-					abcColumn.appendChild(playbackContainer);
 
-					// Get ABC notation from the hidden pre element
-					const abcNotation = abcContainer.querySelector('.abc-source').textContent;
-					setupMIDIPlayback(abcNotation, playbackContainer);
+					// Insert playback container after the abc-container
+					abcContainer.parentNode.insertBefore(playbackContainer, abcContainer.nextSibling);
+
+					// Setup MIDI playback with the visual object
+					setupMIDIPlayback(visualObj, playbackContainer);
 				}
 			})
 			.catch(error => {
 				console.error('Error initializing ABC for example:', error);
 				abcContainer.innerHTML = `<div class="error">Failed to render ABC notation: ${error.message}</div>`;
 			});
-
-		// Insert the ABC column after the rendering column
-		const renderingColumn = example.querySelector('.rendering');
-		if (renderingColumn) {
-			renderingColumn.parentNode.insertBefore(abcColumn, renderingColumn.nextSibling);
-		} else {
-			// Fallback: append to the example
-			example.appendChild(abcColumn);
-		}
 	});
 
 	console.log(`Initialized ABC rendering for ${examples.length} examples`);
@@ -402,6 +297,7 @@ export function debugABC(fqsCode) {
 // =============================================================================
 
 export default {
+	getABCNotation,
 	renderABCFromFQS,
 	setupMIDIPlayback,
 	initializeABCForTutorial,

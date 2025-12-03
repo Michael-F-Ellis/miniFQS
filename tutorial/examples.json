@@ -1,0 +1,49 @@
+{
+	"sections": [
+		{
+			"id": "basic-structure",
+			"title": "Basic Structure",
+			"examples": [
+				{
+					"fqsCode": "Simple Example\n\nHap.py | birth day  to | you - ; |\nK&1 cc  | d c f  | e  |\ncounter: 3",
+					"description": "First 2 measures of 'Happy birthday to you' in F major in 3/4 time."
+				}
+			]
+		},
+		{
+			"id": "simple-rhythms",
+			"title": "Simple Rhythms",
+			"examples": [
+				{
+					"fqsCode": "Simple Rhythm Example\n\n* - - - | * - * - | * * * * | ** ** ***  **** |\nK0   c | cc | cccc   | cc cc ccc cccc  |",
+					"description": "Demonstrates whole, half, quarter, eighth,  triplet eighths and sixteenth notes in 4/4 time."
+				}
+			]
+		},
+		{
+			"id": "dotted-rhythms",
+			"title": "Dotted Rhythms",
+			"examples": []
+		},
+		{
+			"id": "tuplets",
+			"title": "Tuplets",
+			"examples": []
+		},
+		{
+			"id": "partial-measures",
+			"title": "Partial Measures",
+			"examples": []
+		},
+		{
+			"id": "pitch-notation",
+			"title": "Pitch Notation",
+			"examples": []
+		},
+		{
+			"id": "advanced-features",
+			"title": "Advanced Features",
+			"examples": []
+		}
+	]
+}

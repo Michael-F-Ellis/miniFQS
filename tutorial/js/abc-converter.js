@@ -151,224 +151,133 @@ function convertAbsolutePitch(note, layoutOctave, accidental) {
 }
 
 /**
- * Convert FQS rhythm to ABC duration
- * @param {Array} content - Array of syllables and specials in a beat
- * @returns {string} ABC duration suffix (e.g., "/2", "", "/4")
+ * Convert a beat with multiple attacks (all asterisks or syllables) to ABC string.
+ * @param {number} N - number of attacks in the beat
+ * @param {Array<string>} notes - array of ABC pitch strings (without duration)
+ * @returns {string} ABC string for the beat (without spaces between notes)
  */
-function getDurationFromContent(content) {
-	if (!content || !Array.isArray(content)) {
-		return '';
+function convertMultipleAttacks(N, notes) {
+	// If only one attack, it's a quarter note (no duration suffix)
+	if (N === 1) {
+		return notes[0];
 	}
+	// powers of two: 2,4,8,16,...
+	const isPowerOfTwo = (n) => n > 0 && (n & (n - 1)) === 0;
 
-	// Count the number of attacks (syllables and '*')
-	let attackCount = 0;
-	for (const segment of content) {
-		if (segment.type === 'Syllable' || (segment.type === 'Special' && segment.value === '*')) {
-			attackCount++;
-		}
-	}
-
-	// Map to ABC duration
-	// Assuming quarter note beat (L:1/4)
-	if (attackCount === 0) {
-		return ''; // rest or sustain
-	} else if (attackCount === 1) {
-		return ''; // quarter note
-	} else if (attackCount === 2) {
-		return '/2'; // two eighth notes
-	} else if (attackCount === 3) {
-		// Could be triplet or three sixteenths? We'll assume triplet for now
-		return '/3'; // Actually ABC uses (3 for triplet, but duration is /2 with (3
-	} else if (attackCount === 4) {
-		return '/4'; // four sixteenth notes
+	if (isPowerOfTwo(N)) {
+		let duration = '/' + N;
+		return notes.map(note => note + duration).join('');
 	} else {
-		// More than 4: use smallest denominator
-		return `/${attackCount * 2}`; // e.g., 5 attacks -> /10 (quintuplet sixteenths?)
-	}
-}
-
-/**
- * Check if a segment is an attack (consumes a pitch)
- * @param {Object} segment - Syllable or Special segment
- * @returns {boolean}
- */
-function isAttack(segment) {
-	return segment.type === 'Syllable' || (segment.type === 'Special' && segment.value === '*');
-}
-
-// =============================================================================
-// Rhythm Helper Functions
-// =============================================================================
-
-/**
- * Count the number of sub-beats in a BeatTuple.
- * Each syllable (including those separated by dots) counts as 1 sub-beat.
- * Special characters: *, -, =, ; each count as 1 sub-beat.
- * @param {Object} beatTuple - A BeatTuple object from the AST
- * @returns {number} Total sub-beats in the beat
- */
-function countSubBeatsInBeatTuple(beatTuple) {
-	let subBeats = 0;
-	for (const segment of beatTuple.content) {
-		if (segment.type === 'Syllable') {
-			// Count each character in the syllable as 1 sub-beat?
-			// Actually, each syllable (even if multi-letter) is one sub-beat.
-			// But dots separate syllables, so we need to count the number of syllables in the segment.
-			// The segment.value is a string that may contain dots.
-			// Example: "Hap.py" -> two syllables: "Hap" and "py"
-			const syllables = segment.value.split('.').filter(s => s.length > 0);
-			subBeats += syllables.length;
-		} else if (segment.type === 'Special') {
-			// Special characters: *, -, =, ;
-			// Each special character is one sub-beat.
-			subBeats += 1;
+		// Find greatest power of two less than N
+		let M = 2;
+		while (M * 2 <= N) {
+			M *= 2;
 		}
+		let duration = '/' + M;
+		let noteStr = notes.map(note => note + duration).join('');
+		return `(${N}${noteStr}`;
 	}
-	return subBeats;
 }
 
 /**
- * Convert a BeatTuple to ABC note string(s) and advance the pitch index.
- * @param {Object} beatTuple - The BeatTuple to convert
- * @param {Array} pitchElements - Array of pitch elements (Pitch, Barline, KeySignature)
- * @param {number} pitchIndex - Current index in pitchElements
- * @param {number} meterNumerator - The numerator of the meter (e.g., 3 for 3/4)
- * @param {Object} prevPitchState - Previous pitch state for LilyPond rule
- * @returns {Object} {abcString, newPitchIndex, newPrevPitchState}
+ * Process a measure (array of BeatTuples) and return ABC tokens for that measure.
+ * @param {Array<Object>} measureBeats - BeatTuples in the measure
+ * @param {Array<Object>} pitchQueue - pitch elements (Pitch, Barline, KeySignature)
+ * @param {number} pitchIndex - current index in pitchQueue
+ * @param {Object} prevPitchState - previous pitch state for LilyPond rule
+ * @returns {Object} {tokens: Array<string>, newPitchIndex: number, newPrevPitchState: Object}
  */
-function convertBeatTupleToABC(beatTuple, pitchElements, pitchIndex, meterNumerator, prevPitchState) {
-	let abcParts = [];
-	let currentPitchIndex = pitchIndex;
-	let currentPrevPitchState = prevPitchState;
-
-	// We need to process each segment in the beatTuple and assign pitches to attacks.
-	for (const segment of beatTuple.content) {
-		if (segment.type === 'Syllable') {
-			// Split the syllable by dots to get individual syllables.
-			const syllables = segment.value.split('.').filter(s => s.length > 0);
-			for (let i = 0; i < syllables.length; i++) {
-				// Each syllable is an attack (consumes a pitch).
-				// Find the next pitch element that is a Pitch (skip KeySignature and Barline).
-				while (currentPitchIndex < pitchElements.length &&
-					pitchElements[currentPitchIndex].type !== 'Pitch') {
-					// If we encounter a barline or key signature in the middle of a beat, that's unexpected.
-					// But we'll skip and continue.
-					currentPitchIndex++;
-				}
-				if (currentPitchIndex >= pitchElements.length) {
-					// No more pitches, break.
+function processMeasure(measureBeats, pitchQueue, pitchIndex, prevPitchState) {
+	let tokens = [];
+	let i = 0;
+	while (i < measureBeats.length) {
+		let beat = measureBeats[i];
+		let firstSeg = beat.content[0];
+		// Determine if this beat is an attack (syllable or asterisk)
+		let isAttackBeat = false;
+		let numAttacks = 0;
+		if (firstSeg.type === 'Syllable') {
+			isAttackBeat = true;
+			numAttacks = beat.content.length; // each syllable is an attack
+		} else if (firstSeg.type === 'Special' && firstSeg.value === '*') {
+			isAttackBeat = true;
+			// Count all asterisks in the beat (they are consecutive in the content array)
+			numAttacks = beat.content.filter(seg => seg.type === 'Special' && seg.value === '*').length;
+		}
+		if (isAttackBeat) {
+			// Look ahead for consecutive dash beats to extend the duration of the last attack
+			let duration = 1; // each attack beat contributes 1 beat
+			let j = i + 1;
+			while (j < measureBeats.length &&
+				measureBeats[j].content.length === 1 &&
+				measureBeats[j].content[0].type === 'Special' &&
+				measureBeats[j].content[0].value === '-') {
+				duration++;
+				j++;
+			}
+			// For multiple attacks in a beat (e.g., "Hap.py"), the beat is already subdivided.
+			// The duration applies to the entire beat, but each subdivision gets a fraction.
+			// However, in FQS, a dash after a multi-attack beat would be a separate beat, which is not allowed.
+			// We'll assume dash extension only applies when numAttacks === 1.
+			// For numAttacks > 1, the beat is already filled with subdivisions, and dashes would be separate beats (unlikely).
+			// We'll ignore dashes for multi-attack beats for now.
+			if (numAttacks === 1) {
+				// Single attack (syllable or asterisk) possibly extended by dashes
+				// Consume a pitch
+				if (pitchIndex >= pitchQueue.length) {
+					console.error('Not enough pitches');
 					break;
 				}
-				const pitchElem = pitchElements[currentPitchIndex];
-				// Calculate the pitch using LilyPond rule.
-				const currentPitch = calculatePitch(pitchElem, currentPrevPitchState);
-				// Convert to ABC notation.
-				const abcPitch = convertAbsolutePitch(
-					currentPitch.letter,
-					currentPitch.octave,
-					pitchElem.accidental
-				);
-				// Determine duration: each sub-beat is an eighth note in 3/4 with L:1/4? Wait, we need to set L:1/4.
-				// In 3/4 time with L:1/4, one sub-beat is an eighth note (because two sub-beats make a quarter note).
-				// So, if we have one sub-beat, duration is /2. But we don't know the total sub-beats in the beat yet.
-				// Actually, we need to know the total sub-beats in the beat to assign durations.
-				// We'll handle duration later by grouping the entire beat.
-				// For now, just collect the pitch.
-				abcParts.push({
-					type: 'note',
-					pitch: abcPitch,
-					subBeats: 1  // each syllable is 1 sub-beat
-				});
-				currentPrevPitchState = currentPitch;
-				currentPitchIndex++;
-			}
-		} else if (segment.type === 'Special') {
-			const special = segment.value;
-			if (special === '*' || special === '-' || special === '=') {
-				// These are attacks (except dash is a tie, but still consumes a pitch for the first dash?).
-				// Actually, dash extends the previous note and does not consume a new pitch.
-				// But the first dash in a beat might be extending a note from previous beat? 
-				// We'll handle dashes as ties later.
-				// For now, treat * and = as attacks (consume pitch), dash as tie (no new pitch).
-				if (special === '*' || special === '=') {
-					// Consume a pitch.
-					while (currentPitchIndex < pitchElements.length &&
-						pitchElements[currentPitchIndex].type !== 'Pitch') {
-						currentPitchIndex++;
-					}
-					if (currentPitchIndex >= pitchElements.length) {
+				let pitchElem = pitchQueue[pitchIndex++];
+				while (pitchElem && pitchElem.type !== 'Pitch') {
+					pitchElem = pitchQueue[pitchIndex++];
+				}
+				let currentPitch = calculatePitch(pitchElem, prevPitchState);
+				prevPitchState = currentPitch;
+				let abcPitch = convertAbsolutePitch(currentPitch.letter, currentPitch.octave, pitchElem.accidental);
+				let durationStr = duration === 1 ? '' : duration.toString();
+				tokens.push(abcPitch + durationStr);
+				i = j;
+			} else {
+				// Multiple attacks in a single beat (e.g., "Hap.py")
+				// Each attack gets a fraction of the beat. No dash extension.
+				let notes = [];
+				for (let k = 0; k < numAttacks; k++) {
+					if (pitchIndex >= pitchQueue.length) {
+						console.error('Not enough pitches');
 						break;
 					}
-					const pitchElem = pitchElements[currentPitchIndex];
-					const currentPitch = calculatePitch(pitchElem, currentPrevPitchState);
-					const abcPitch = convertAbsolutePitch(
-						currentPitch.letter,
-						currentPitch.octave,
-						pitchElem.accidental
-					);
-					abcParts.push({
-						type: 'note',
-						pitch: abcPitch,
-						subBeats: 1
-					});
-					currentPrevPitchState = currentPitch;
-					currentPitchIndex++;
-				} else if (special === '-') {
-					// Tie: extend the previous note by one sub-beat.
-					// We'll mark it as a tie.
-					abcParts.push({
-						type: 'tie',
-						subBeats: 1
-					});
+					let pitchElem = pitchQueue[pitchIndex++];
+					while (pitchElem && pitchElem.type !== 'Pitch') {
+						pitchElem = pitchQueue[pitchIndex++];
+					}
+					let currentPitch = calculatePitch(pitchElem, prevPitchState);
+					prevPitchState = currentPitch;
+					let abcPitch = convertAbsolutePitch(currentPitch.letter, currentPitch.octave, pitchElem.accidental);
+					notes.push(abcPitch);
 				}
-			} else if (special === ';') {
-				// Rest: does not consume a pitch.
-				abcParts.push({
-					type: 'rest',
-					subBeats: 1
-				});
+				let beatStr = convertMultipleAttacks(numAttacks, notes);
+				tokens.push(beatStr);
+				i++;
 			}
 		}
+		// Rest beat
+		else if (firstSeg.type === 'Special' && firstSeg.value === ';') {
+			tokens.push('z');
+			i++;
+		}
+		// Dash beat (should have been consumed by attack lookahead)
+		else if (firstSeg.type === 'Special' && firstSeg.value === '-') {
+			console.warn('Dash beat without preceding attack in measure');
+			i++;
+		}
+		// Other specials (like '=') ignored
+		else {
+			console.warn(`Unhandled beat type: ${firstSeg.type} value: ${firstSeg.value}`);
+			i++;
+		}
 	}
-
-	// Now, we have abcParts with notes, ties, and rests, each with subBeats = 1.
-	// We need to group them into notes with durations based on the total sub-beats in the beat.
-	// The total sub-beats in the beat is countSubBeatsInBeatTuple(beatTuple).
-	// But we have already broken down each segment into 1 sub-beat parts.
-	// We can now combine consecutive notes of the same pitch with ties? 
-	// Actually, we should output ABC duration for each note based on the number of sub-beats it occupies.
-
-	// For now, let's assume each note gets the same duration: 1 sub-beat -> eighth note in 3/4 with L:1/4.
-	// But wait, the beat might have a different number of sub-beats. For example, "Hap.py" has 2 sub-beats, so each note is an eighth note.
-	// In 3/4 time with L:1/4, an eighth note is /2.
-
-	// We'll compute the duration for one sub-beat: 
-	// If the meter is 3/4 and L:1/4, then one beat is a quarter note, which is 2 sub-beats (because two eighth notes make a quarter).
-	// So, one sub-beat = eighth note = /2.
-
-	// However, the beat might have 3 sub-beats (like a triplet). We don't have that in Happy Birthday.
-
-	// Let's compute the duration for each sub-beat as a fraction of a quarter note.
-	// We'll set L:1/4, so the unit is a quarter note.
-	// If the beat has N sub-beats, then each sub-beat is 1/N of a beat, and one beat is a quarter note.
-	// So, each sub-beat is (1/N) of a quarter note, which in ABC is 1/N divided by 1/4 = 4/N.
-	// That's not standard. Actually, we want to express the note length in terms of L.
-	// Let L = 1/4. Then a quarter note is 1 unit, an eighth note is 1/2 unit, etc.
-	// If we have N sub-beats in a beat, then each sub-beat is 1/N of a beat, and a beat is 1 unit (quarter note).
-	// So, each sub-beat is 1/N units. In ABC, we can write that as `1/N` but that's not standard.
-	// Alternatively, we can set L to 1/(4*N) but that changes for every beat.
-
-	// This is getting too complex. Let's step back.
-
-	// Given the time, let's focus on fixing the Happy Birthday example with hardcoded logic.
-	// We'll rewrite the entire convertToABC function for the specific example and then generalize later.
-
-	// For now, we return an empty string and the updated indices.
-	return {
-		abcString: '', // We'll handle this in the new convertToABC
-		newPitchIndex: currentPitchIndex,
-		newPrevPitchState: currentPrevPitchState
-	};
+	return { tokens, newPitchIndex: pitchIndex, newPrevPitchState: prevPitchState };
 }
 
 // =============================================================================
@@ -411,59 +320,45 @@ export function convertToABC(ast) {
 		lines.push('L:1/4'); // Default unit note length (quarter note)
 
 		const pitchElements = block.pitches.elements || [];
-		let abcNotes = [];
+		let abcTokens = [];
 
 		// Initialize previous pitch state: virtual C4 (layout octave 0)
 		let prevPitchState = { letter: 'c', octave: 0 };
 		let pitchIndex = 0;
 
-		// We'll process the lyrics (which contain the rhythm) and pitches together.
-		// For now, we'll only handle the Happy Birthday example.
-		// The Happy Birthday example has:
-		//   Counter: 3 -> 3/4
-		//   First measure (pickup): two eighth notes (C C)
-		//   Second measure: three quarter notes (D C F)
-		//   Third measure: half note (E) and quarter rest (z)
-
-		// We'll hardcode the conversion for this specific example.
-		// This is a temporary fix until we implement the general solution.
-
-		// Check if this is the Happy Birthday example by looking at the title and the first few lyrics.
-		// We'll do a simple check: if the title is "Simple Example" and the first lyric is "Hap.py"
-		if (ast.title === 'Simple Example' && block.lyrics && block.lyrics.length > 0) {
-			// Hardcoded conversion for Happy Birthday
-			// We'll assume the structure is exactly as in the tutorial.
-
-			// First pickup: two eighth notes (C C)
-			abcNotes.push('C/2', 'C/2');
-			// First barline (after pickup)
-			abcNotes.push('|');
-			// Second measure: three quarter notes (D C F)
-			abcNotes.push('D', 'C', 'F');
-			abcNotes.push('|');
-			// Third measure: half note (E) and quarter rest (z)
-			abcNotes.push('E2', 'z');
-		} else {
-			// Fallback to the old conversion for other examples.
-			for (const element of pitchElements) {
-				if (element.type === 'Pitch') {
-					const currentPitch = calculatePitch(element, prevPitchState);
-					const abcPitch = convertAbsolutePitch(
-						currentPitch.letter,
-						currentPitch.octave,
-						element.accidental
-					);
-					abcNotes.push(abcPitch);
-					prevPitchState = currentPitch;
-				} else if (element.type === 'Barline') {
-					abcNotes.push('|');
+		// Group lyric items by measures (using barlines as separators)
+		let measures = [];
+		let currentMeasure = [];
+		for (const item of block.lyrics) {
+			if (item.type === 'Barline') {
+				if (currentMeasure.length > 0) {
+					measures.push(currentMeasure);
+					currentMeasure = [];
 				}
+				// We'll add the barline later as a token
+			} else {
+				currentMeasure.push(item);
 			}
+		}
+		// If there's a partial measure at the end (should not happen with valid FQS)
+		if (currentMeasure.length > 0) {
+			measures.push(currentMeasure);
+		}
+
+		// Process each measure
+		for (let m = 0; m < measures.length; m++) {
+			const measureBeats = measures[m];
+			const result = processMeasure(measureBeats, pitchElements, pitchIndex, prevPitchState);
+			abcTokens.push(...result.tokens);
+			pitchIndex = result.newPitchIndex;
+			prevPitchState = result.newPrevPitchState;
+			// Add a barline after each measure (the FQS lyric line ends with a barline)
+			abcTokens.push('|');
 		}
 
 		// Add the notes line
-		if (abcNotes.length > 0) {
-			lines.push(abcNotes.join(' '));
+		if (abcTokens.length > 0) {
+			lines.push(abcTokens.join(' '));
 		}
 	});
 

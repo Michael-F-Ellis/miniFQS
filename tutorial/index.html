@@ -6,6 +6,8 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>miniFQS Tutorial for Choral Singers</title>
 	<link rel="stylesheet" href="css/styles.css">
+	<!-- abcjs audio controls CSS -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/abcjs@6.5.2/abcjs-audio.css">
 	<script>
 		// Set a global flag to indicate abcjs is being loaded
 		window.abcjsLoading = true;
@@ -76,56 +78,14 @@
 			<h2>Basic Structure</h2>
 			<p>Every FQS score has a simple structure: title, lyric lines, and pitch lines.</p>
 
-			<div class="example" data-fqs-code="Simple Example
-
-Hap.py | birth day  to | you - ; |
-K&1 cc  | d c f  | e  |
-counter: 3">
-				<div class="fqs-code">
-					<h4>FQS Syntax</h4>
-					<pre><code class="fqs-source"></code></pre>
-				</div>
-				<div class="rendering">
-					<h4>miniFQS Rendering</h4>
-					<mini-fqs class="fqs-render"></mini-fqs>
-				</div>
-				<div class="explanation">
-					<h4>Standard Notation</h4>
-					<p> First 2 measures of "Happy birthday" to you" in F
-						major in 3/4 time.</p>
-				</div>
-			</div>
+			<div class="examples-container" data-section="basic-structure"></div>
 		</section>
 
 		<section id="simple-rhythms">
 			<h2>Simple Rhythms</h2>
 			<p>Basic rhythmic patterns using quarter notes, half notes, and eighth notes.</p>
 
-			<div class="example" data-fqs-code="Simple Rhythm Example
-
-Ta | ta ta | ta-a | ti-ti ta |
-K0  | c c  | d    | e f c   |">
-				<div class="fqs-code">
-					<h4>FQS Syntax</h4>
-					<pre><code class="fqs-source"></code></pre>
-				</div>
-				<div class="rendering">
-					<h4>miniFQS Rendering</h4>
-					<mini-fqs class="fqs-render"></mini-fqs>
-				</div>
-				<div class="explanation">
-					<h4>Standard Notation</h4>
-					<p>This example shows four measures in 4/4 time:</p>
-					<ul>
-						<li><strong>Measure 1</strong>: Two quarter notes ("Ta ta")</li>
-						<li><strong>Measure 2</strong>: Two quarter notes ("ta ta")</li>
-						<li><strong>Measure 3</strong>: One half note ("ta-a")</li>
-						<li><strong>Measure 4</strong>: Two eighth notes ("ti-ti") followed by a quarter note ("ta")
-						</li>
-					</ul>
-					<p>The pitch line shows a simple melody in C major (K0).</p>
-				</div>
-			</div>
+			<div class="examples-container" data-section="simple-rhythms"></div>
 		</section>
 
 		<section id="dotted-rhythms">

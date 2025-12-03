@@ -41,7 +41,8 @@ miniFQS/
 │   ├── index.html    # Main tutorial page
 │   ├── css/          # Tutorial styles
 │   ├── js/           # Tutorial JavaScript
-│   └── examples/     # Individual example pages (future)
+│   ├── examples.json # JSON file containing all tutorial examples
+│   └── examples/     # Individual example pages (future, optional)
 └── memory-bank/      # Project documentation
     ├── projectbrief.md
     ├── productContext.md

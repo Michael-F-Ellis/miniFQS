@@ -33,9 +33,10 @@ miniFQS follows a modular, web-centric architecture with clear separation betwee
   4. Custom event `fqs-load` dispatched with dimensions.
 
 ### 4. Tutorial System (tutorial/)
-- **Pattern**: Static HTML with dynamic JavaScript for example synchronization.
-- **Data Flow**: Single-source FQS examples stored in `data-fqs-code` attributes.
-- **JavaScript**: `initializeFQSExamples()` reads data attributes and populates both code display and mini-fqs elements.
+- **Pattern**: Static HTML with dynamic JavaScript for example synchronization and JSON-driven data.
+- **Data Flow**: FQS examples stored in `tutorial/examples.json` (organized by sections), dynamically loaded and rendered.
+- **JavaScript**: `tutorial.js` fetches JSON, generates example containers with four columns (FQS Syntax, miniFQS Rendering, ABC Notation & Playback, ABC Code).
+- **Design**: Centralized data storage for easy maintenance and extension, with dynamic generation eliminating redundant HTML.
 
 ## Data Flow Patterns
 
@@ -44,14 +45,21 @@ miniFQS follows a modular, web-centric architecture with clear separation betwee
 FQS Text → Parser (AST) → Layout Engine (Commands) → SVG Generation → DOM
 ```
 
+### Tutorial Example Pipeline
+```
+examples.json (structured data) → tutorial.js (dynamic generation) → HTML Example Containers (4 columns) → mini-fqs & abcjs rendering
+```
+
 ### State Management
 - **Parser**: Stateless, pure function `parse(text)`.
 - **Layout**: Stateful within a score (tracking pitch context, accidental state).
 - **Component**: Manages its own score text and re-renders on changes.
+- **Tutorial**: Loads example data once, generates example containers, initializes rendering and ABC notation for each.
 
 ### Error Handling Pattern
 - **Parser Errors**: Thrown as `SyntaxError` with location info.
 - **Layout Errors**: Caught and displayed as error message in component.
+- **Tutorial Errors**: JSON loading errors or example generation failures logged to console with user-friendly messages.
 - **User Feedback**: Error messages shown in red box within component.
 
 ## Design Patterns in Use
@@ -76,7 +84,8 @@ FQS Text → Parser (AST) → Layout Engine (Commands) → SVG Generation → DO
 
 ### 5. Observer Pattern (Tutorial)
 - JavaScript observes DOM and initializes examples after load.
-- Copy buttons are dynamically injected and manage their own state.
+- Copy buttons are dynamically injected and manage their own state (for both FQS and ABC code).
+- ABCjs integration waits for library load and then renders standard notation and MIDI controls.
 
 ## Integration Patterns
 

@@ -3,29 +3,135 @@
 
 import { initializeABCForTutorial } from './abcjs-integration.js';
 
-document.addEventListener('DOMContentLoaded', function () {
-	// Initialize FQS examples from data attributes
-	function initializeFQSExamples() {
-		const examples = document.querySelectorAll('.example[data-fqs-code]');
+// Extract title from FQS code (first non-empty line)
+function extractTitleFromFQSCode(fqsCode) {
+	if (!fqsCode) return 'Untitled Example';
+	const lines = fqsCode.split('\n').filter(line => line.trim().length > 0);
+	return lines.length > 0 ? lines[0].trim() : 'Untitled Example';
+}
 
-		examples.forEach(example => {
-			const fqsCode = example.getAttribute('data-fqs-code');
-
-			// Populate code display
-			const codeElement = example.querySelector('.fqs-source');
-			if (codeElement) {
-				codeElement.textContent = fqsCode;
-			}
-
-			// Populate mini-fqs element
-			const renderElement = example.querySelector('.fqs-render');
-			if (renderElement) {
-				renderElement.setAttribute('score', fqsCode);
-			}
-		});
+// Load examples from JSON file
+async function loadExamples() {
+	try {
+		const response = await fetch('examples.json');
+		if (!response.ok) {
+			throw new Error(`Failed to load examples.json: ${response.status} ${response.statusText}`);
+		}
+		const data = await response.json();
+		console.log('Loaded examples data:', data);
+		return data;
+	} catch (error) {
+		console.error('Error loading examples:', error);
+		// Return minimal structure as fallback
+		return { sections: [] };
 	}
+}
 
-	// Smooth scrolling for navigation links
+// Initialize FQS examples from JSON data
+async function initializeFQSExamples() {
+	const examplesData = await loadExamples();
+
+	// Create a map of section IDs to examples for quick lookup
+	const examplesBySection = {};
+	examplesData.sections.forEach(section => {
+		examplesBySection[section.id] = section.examples || [];
+	});
+
+	// Get all example containers
+	const exampleContainers = document.querySelectorAll('.examples-container[data-section]');
+
+	exampleContainers.forEach(container => {
+		const sectionId = container.getAttribute('data-section');
+		const examples = examplesBySection[sectionId] || [];
+
+		// Clear container
+		container.innerHTML = '';
+
+		if (examples.length === 0) {
+			container.innerHTML = '<div class="example-placeholder"><p>No examples available for this section yet.</p></div>';
+			return;
+		}
+
+		// Create an example div for each example
+		examples.forEach(example => {
+			const fqsCode = example.fqsCode;
+			const title = extractTitleFromFQSCode(fqsCode);
+
+			const exampleDiv = document.createElement('div');
+			exampleDiv.className = 'example';
+			// Note: We no longer use data-fqs-code attribute as the primary source
+			// but we'll keep it for backward compatibility if needed
+			exampleDiv.setAttribute('data-fqs-code', fqsCode);
+
+			// Create the four columns
+			const columns = [
+				{ className: 'fqs-code', title: 'FQS Syntax', content: createFQSCodeColumn(fqsCode) },
+				{ className: 'rendering', title: 'miniFQS Rendering', content: createRenderingColumn(fqsCode, title) },
+				{ className: 'abc-column', title: 'ABC Notation & Playback', content: createABCColumnPlaceholder() },
+				{ className: 'abc-code', title: 'ABC Code', content: createABCCodeColumnPlaceholder() }
+			];
+
+			columns.forEach(col => {
+				const columnDiv = document.createElement('div');
+				columnDiv.className = col.className;
+
+				const heading = document.createElement('h4');
+				heading.textContent = col.title;
+				columnDiv.appendChild(heading);
+
+				if (col.content) {
+					columnDiv.appendChild(col.content);
+				}
+
+				exampleDiv.appendChild(columnDiv);
+			});
+
+			container.appendChild(exampleDiv);
+		});
+	});
+
+	console.log(`Initialized ${exampleContainers.length} example containers from JSON`);
+}
+
+// Create FQS code column
+function createFQSCodeColumn(fqsCode) {
+	const pre = document.createElement('pre');
+	const code = document.createElement('code');
+	code.className = 'fqs-source';
+	code.textContent = fqsCode;
+	pre.appendChild(code);
+	return pre;
+}
+
+// Create rendering column with mini-fqs element
+function createRenderingColumn(fqsCode, title) {
+	const miniFQS = document.createElement('mini-fqs');
+	miniFQS.className = 'fqs-render';
+	miniFQS.setAttribute('score', fqsCode);
+	miniFQS.setAttribute('title', title);
+	return miniFQS;
+}
+
+// Create placeholder for ABC column (will be populated by abcjs-integration.js)
+function createABCColumnPlaceholder() {
+	const div = document.createElement('div');
+	div.className = 'abc-container';
+	// Will be populated by abcjs-integration.js
+	return div;
+}
+
+// Create placeholder for ABC code column (will be populated by abcjs-integration.js)
+function createABCCodeColumnPlaceholder() {
+	const pre = document.createElement('pre');
+	const code = document.createElement('code');
+	code.className = 'abc-source';
+	// Will be populated by abcjs-integration.js
+	pre.appendChild(code);
+	return pre;
+}
+
+// Smooth scrolling for navigation links
+function setupSmoothScrolling() {
 	const navLinks = document.querySelectorAll('nav a[href^="#"]');
 
 	navLinks.forEach(link => {
@@ -45,12 +151,14 @@ document.addEventListener('DOMContentLoaded', function () {
 			}
 		});
 	});
+}
 
-	// Highlight active navigation section
+// Highlight active navigation section
+function setupActiveNavHighlight() {
+	const sections = document.querySelectorAll('section');
+	const navLinks = document.querySelectorAll('nav a[href^="#"]');
+
 	function highlightActiveNav() {
-		const sections = document.querySelectorAll('section');
-		const navLinks = document.querySelectorAll('nav a[href^="#"]');
-
 		let currentSection = '';
 
 		sections.forEach(section => {
@@ -83,11 +191,41 @@ document.addEventListener('DOMContentLoaded', function () {
 	// Initial highlight and scroll event listener
 	highlightActiveNav();
 	window.addEventListener('scroll', highlightActiveNav);
+}
 
-	// Copy code functionality for FQS examples
-	const codeBlocks = document.querySelectorAll('.fqs-code pre');
+// Copy code functionality for FQS examples
+function setupCopyButtons() {
+	// Use event delegation for dynamically created elements
+	document.addEventListener('click', async (e) => {
+		const copyButton = e.target.closest('.copy-button');
+		if (!copyButton) return;
+
+		const codeBlock = copyButton.closest('pre');
+		if (!codeBlock) return;
+
+		const code = codeBlock.textContent;
+		try {
+			await navigator.clipboard.writeText(code);
+			const originalText = copyButton.textContent;
+			copyButton.textContent = 'Copied!';
+			setTimeout(() => {
+				copyButton.textContent = originalText;
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to copy code: ', err);
+			copyButton.textContent = 'Failed';
+			setTimeout(() => {
+				copyButton.textContent = 'Copy';
+			}, 2000);
+		}
+	});
+
+	// Also add copy buttons to existing code blocks
+	const codeBlocks = document.querySelectorAll('.fqs-code pre, .abc-code pre');
 
 	codeBlocks.forEach(block => {
+		if (block.querySelector('.copy-button')) return; // Already has a button
+
 		const copyButton = document.createElement('button');
 		copyButton.textContent = 'Copy';
 		copyButton.className = 'copy-button';
@@ -104,6 +242,7 @@ document.addEventListener('DOMContentLoaded', function () {
             cursor: pointer;
             opacity: 0;
             transition: opacity 0.3s ease;
+            z-index: 10;
         `;
 
 		block.style.position = 'relative';
@@ -116,46 +255,41 @@ document.addEventListener('DOMContentLoaded', function () {
 		block.addEventListener('mouseleave', () => {
 			copyButton.style.opacity = '0';
 		});
+	});
+}
 
-		copyButton.addEventListener('click', async () => {
-			const code = block.textContent;
-			try {
-				await navigator.clipboard.writeText(code);
-				copyButton.textContent = 'Copied!';
-				setTimeout(() => {
-					copyButton.textContent = 'Copy';
-				}, 2000);
-			} catch (err) {
-				console.error('Failed to copy code: ', err);
-				copyButton.textContent = 'Failed';
-				setTimeout(() => {
-					copyButton.textContent = 'Copy';
-				}, 2000);
+// Auto-resize mini-fqs elements based on content
+function setupMiniFQSResizing() {
+	const observer = new MutationObserver((mutations) => {
+		mutations.forEach((mutation) => {
+			if (mutation.type === 'childList' || mutation.type === 'attributes') {
+				const miniFQSElements = document.querySelectorAll('mini-fqs');
+				miniFQSElements.forEach(element => {
+					element.addEventListener('fqs-load', function (e) {
+						const container = this.shadowRoot?.querySelector('#container');
+						if (container && container.firstChild) {
+							const svg = container.querySelector('svg');
+							if (svg) {
+								// Set a reasonable max height for tutorial examples
+								svg.style.maxHeight = '200px';
+							}
+						}
+					});
+				});
 			}
 		});
 	});
 
-	// Auto-resize mini-fqs elements based on content
-	function resizeMiniFQSElements() {
-		const miniFQSElements = document.querySelectorAll('mini-fqs');
+	observer.observe(document.body, {
+		childList: true,
+		subtree: true,
+		attributes: true,
+		attributeFilter: ['score']
+	});
+}
 
-		miniFQSElements.forEach(element => {
-			element.addEventListener('fqs-load', function (e) {
-				const container = this.shadowRoot.querySelector('#container');
-				if (container && container.firstChild) {
-					const svg = container.querySelector('svg');
-					if (svg) {
-						// Set a reasonable max height for tutorial examples
-						svg.style.maxHeight = '200px';
-					}
-				}
-			});
-		});
-	}
-
-	resizeMiniFQSElements();
-
-	// Add keyboard navigation
+// Add keyboard navigation
+function setupKeyboardNavigation() {
 	document.addEventListener('keydown', function (e) {
 		if (e.altKey) {
 			const sections = document.querySelectorAll('section');
@@ -177,8 +311,10 @@ document.addEventListener('DOMContentLoaded', function () {
 			}
 		}
 	});
+}
 
-	// Print-friendly styles for PDF generation
+// Print-friendly styles for PDF generation
+function setupPrintStyles() {
 	const printStyle = document.createElement('style');
 	printStyle.textContent = `
         @media print {
@@ -199,12 +335,31 @@ document.addEventListener('DOMContentLoaded', function () {
             .rendering mini-fqs {
                 border: 1px solid #000;
             }
+            
+            .abc-code pre {
+                background-color: white !important;
+                color: black !important;
+                border: 1px solid #ccc;
+            }
         }
     `;
 	document.head.appendChild(printStyle);
+}
 
-	// Initialize FQS examples
-	initializeFQSExamples();
+// Main initialization
+document.addEventListener('DOMContentLoaded', async function () {
+	console.log('miniFQS Tutorial JavaScript loading...');
+
+	// Setup all functionality
+	setupSmoothScrolling();
+	setupActiveNavHighlight();
+	setupCopyButtons();
+	setupMiniFQSResizing();
+	setupKeyboardNavigation();
+	setupPrintStyles();
+
+	// Initialize FQS examples from JSON
+	await initializeFQSExamples();
 
 	// Initialize ABC rendering for all examples
 	try {
@@ -215,3 +370,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	console.log('miniFQS Tutorial JavaScript loaded successfully');
 });
+
+// Export functions for testing
+export {
+	extractTitleFromFQSCode,
+	loadExamples,
+	initializeFQSExamples
+};
