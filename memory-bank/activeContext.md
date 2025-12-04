@@ -68,6 +68,18 @@ The primary focus is on **tutorial development and user education**. The core mi
 - **Key signature handling**: The tool now includes the initial key signature (from `block.pitches.keySignature`) as a separate row, essential for pitch processing.
 - **Testing**: Verified with `test_happy.fqs` and `test_dotted_rhythms.fqs`; the output correctly shows the key signature `K&1` and `K0` respectively.
 
+### 11. Created pitch-octaves Utility (New)
+- **Pipeline stage 2**: Created `pitch-octaves.js` that reads TSV output from `ast2flat` and calculates absolute octaves for pitches using the LilyPond Rule.
+- **Octave numbering**: Uses musical convention where 4 = C4 (middle C), consistent with standard notation.
+- **LilyPond Rule implementation**: Reused the `calculatePitch` function from `layout.js` to ensure consistency with visual rendering.
+- **State management**: Maintains pitch state per block, resetting to C4 at each block boundary.
+- **Octave shift handling**: Correctly processes explicit octave modifiers (`^` for up, `/` for down, and combinations like `^^`, `//`).
+- **Testing**: Verified with multiple test files:
+  - `test_happy.fqs`: All pitches correctly assigned octave 4
+  - `test_octaves.fqs`: Octave shifts correctly calculated (c^ -> 5, c/ -> 4, c^^ -> 6, c// -> 4)
+  - `test_lilypond.fqs`: LilyPond Rule correctly applied (b to c jumps to octave 5, c to b returns to octave 4)
+- **Integration**: Works seamlessly in the pipeline: `fqs2ast.js | ast2flat.js | pitch-octaves.js`
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy

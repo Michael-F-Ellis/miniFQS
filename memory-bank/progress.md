@@ -61,6 +61,23 @@ n# Progress
    - **Fixed MIDI playback**: Updated to use `SynthController` API instead of problematic `CreateSynth` + `TimingCallbacks`
    - **Fixed CSS styling**: Using official abcjs-audio.css from CDN with correct class names
 
+### Pipeline Utilities (New)
+1. **ast2flat Utility**
+   - Flattens AST into tabular TSV format for debugging and pipeline processing
+   - Includes all AST information: lyrics, pitches, barlines, key signatures, subdivisions
+   - Outputs 1‑based indices (block, measure, beat, subdivision) for musician‑friendly counting
+   - Handles initial key signature from `block.pitches.keySignature`
+   - Tested with `test_happy.fqs` and `test_dotted_rhythms.fqs`
+
+2. **pitch-octaves Utility**
+   - Pipeline stage 2: reads TSV from `ast2flat` and calculates absolute octaves for pitches
+   - Uses LilyPond Rule (same as layout.js) for octave calculation
+   - Employs musical octave numbering (4 = C4, middle C)
+   - Handles explicit octave modifiers (`^` for up, `/` for down, combinations)
+   - Maintains pitch state per block, resetting to C4 at block boundaries
+   - Tested with multiple examples including octave shifts and LilyPond Rule verification
+   - Integrates seamlessly: `fqs2ast.js | ast2flat.js | pitch-octaves.js`
+
 ## What's Left to Build
 
 ### Tutorial Content (High Priority)
