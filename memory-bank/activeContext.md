@@ -61,6 +61,13 @@ The primary focus is on **tutorial development and user education**. The core mi
 - **Verified correction**: Command‑line tools now produce the expected ABC for the Simple Rhythm Example: `C4 | C2 C2 | C C C C | C/2C/2 C/2C/2 (3C/2C/2C/2 C/4C/4C/4C/4 |`
 - **Tutorial integration**: The tutorial now displays the correct ABC notation for the Simple Rhythms section.
 
+### 10. Shifted to Pipeline Approach and Created ast2flat (New)
+- **Changed strategy**: Instead of directly converting AST to ABC, we are building a pipeline of command-line utilities that each perform a limited transformation.
+- **Created ast2flat**: A new utility that flattens the AST into a tabular TSV format for debugging and further processing.
+- **Flattened schema**: The TSV output includes columns for source (lyrics/pitches), block, measure, beat, subdivision, total beats, type, value, duration, modifier, pitch index, pitch note, accidental, octave shifts, and optional raw JSON.
+- **Key signature handling**: The tool now includes the initial key signature (from `block.pitches.keySignature`) as a separate row, essential for pitch processing.
+- **Testing**: Verified with `test_happy.fqs` and `test_dotted_rhythms.fqs`; the output correctly shows the key signature `K&1` and `K0` respectively.
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy

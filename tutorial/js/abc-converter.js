@@ -151,36 +151,95 @@ function convertAbsolutePitch(note, layoutOctave, accidental) {
 }
 
 /**
- * Convert a beat with multiple attacks (all asterisks or syllables) to ABC string.
- * @param {number} N - number of attacks in the beat
- * @param {Array<string>} notes - array of ABC pitch strings (without duration)
- * @returns {string} ABC string for the beat (without spaces between notes)
+ * Get the next pitch element from the pitch queue, skipping non-pitch elements.
+ * @param {Array<Object>} pitchQueue - array of pitch elements
+ * @param {number} index - current index
+ * @returns {Object} {elem: pitch element or null, newIndex: next index}
  */
-function convertMultipleAttacks(N, notes) {
-	// If only one attack, it's a quarter note (no duration suffix)
-	if (N === 1) {
-		return notes[0];
+function getNextPitch(pitchQueue, index) {
+	while (index < pitchQueue.length && pitchQueue[index].type !== 'Pitch') {
+		index++;
 	}
-	// powers of two: 2,4,8,16,...
-	const isPowerOfTwo = (n) => n > 0 && (n & (n - 1)) === 0;
+	if (index >= pitchQueue.length) {
+		return { elem: null, newIndex: index };
+	}
+	return { elem: pitchQueue[index], newIndex: index + 1 };
+}
 
-	if (isPowerOfTwo(N)) {
-		let duration = '/' + N;
-		return notes.map(note => note + duration).join('');
-	} else {
-		// Find greatest power of two less than N
-		let M = 2;
-		while (M * 2 <= N) {
-			M *= 2;
+/**
+ * Check if a segment is an attack (syllable or asterisk).
+ * @param {Object} seg - segment object
+ * @returns {boolean} true if the segment is an attack
+ */
+function isAttackSegment(seg) {
+	return seg.type === 'Syllable' || (seg.type === 'Special' && seg.value === '*');
+}
+
+/**
+ * Find the next attack or rest in the segments array.
+ * @param {Array<Object>} segments - array of segment objects
+ * @param {number} startIndex - index to start searching from
+ * @returns {number} index of next attack or rest, or -1 if not found
+ */
+function findNextAttack(segments, startIndex) {
+	for (let i = startIndex; i < segments.length; i++) {
+		if (isAttackSegment(segments[i]) || (segments[i].type === 'Special' && segments[i].value === ';')) {
+			return i;
 		}
-		let duration = '/' + M;
-		let noteStr = notes.map(note => note + duration).join('');
-		return `(${N}${noteStr}`;
 	}
+	return -1;
+}
+
+/**
+ * Compute the duration in beats between two positions.
+ * @param {Object} start - object with beat, subdivisionIndex, subdivisionDuration
+ * @param {Object} end - object with beat, subdivisionIndex, subdivisionDuration
+ * @returns {number} duration in beats
+ */
+function computeDuration(start, end) {
+	let startBeat = start.beat + (start.subdivisionIndex * start.subdivisionDuration);
+	let endBeat = end.beat + (end.subdivisionIndex * end.subdivisionDuration);
+	return endBeat - startBeat;
+}
+
+/**
+ * Convert a decimal duration to a fraction with denominator up to 64.
+ * @param {number} decimal - duration in beats as decimal
+ * @returns {Array<number>} [numerator, denominator]
+ */
+function toFraction(decimal) {
+	const tolerance = 1.0e-6;
+	let numerator = 1, denominator = 1;
+	let fraction = decimal;
+	while (Math.abs(fraction - Math.round(fraction)) > tolerance && denominator < 64) {
+		denominator++;
+		numerator = Math.round(fraction * denominator);
+		fraction = numerator / denominator;
+	}
+	return [Math.round(numerator), Math.round(denominator)];
+}
+
+/**
+ * Convert a duration in beats to ABC notation.
+ * @param {number} durationInBeats - duration in beats (quarter notes)
+ * @returns {string} ABC duration suffix
+ */
+function convertDurationToABC(durationInBeats) {
+	if (durationInBeats === 1) return '';
+	if (durationInBeats === 0.5) return '/2';
+	if (durationInBeats === 0.25) return '/4';
+	if (durationInBeats === 0.75) return '3/4';
+	if (durationInBeats === 1.5) return '3/2';
+	if (durationInBeats === 2) return '2';
+	// For other durations, use fraction
+	let frac = toFraction(durationInBeats);
+	if (frac[1] === 1) return frac[0].toString();
+	return frac[0] + '/' + frac[1];
 }
 
 /**
  * Process a measure (array of BeatTuples) and return ABC tokens for that measure.
+ * This new implementation handles dotted rhythms by analyzing subdivisions within beats.
  * @param {Array<Object>} measureBeats - BeatTuples in the measure
  * @param {Array<Object>} pitchQueue - pitch elements (Pitch, Barline, KeySignature)
  * @param {number} pitchIndex - current index in pitchQueue
@@ -188,101 +247,130 @@ function convertMultipleAttacks(N, notes) {
  * @returns {Object} {tokens: Array<string>, newPitchIndex: number, newPrevPitchState: Object}
  */
 function processMeasure(measureBeats, pitchQueue, pitchIndex, prevPitchState) {
-	let tokens = [];
-	let i = 0;
-	while (i < measureBeats.length) {
-		let beat = measureBeats[i];
-		let firstSeg = beat.content[0];
-		// Determine if this beat is an attack (syllable or asterisk)
-		let isAttackBeat = false;
-		let numAttacks = 0;
-		if (firstSeg.type === 'Syllable') {
-			isAttackBeat = true;
-			numAttacks = beat.content.length; // each syllable is an attack
-		} else if (firstSeg.type === 'Special' && firstSeg.value === '*') {
-			isAttackBeat = true;
-			// Count all asterisks in the beat (they are consecutive in the content array)
-			numAttacks = beat.content.filter(seg => seg.type === 'Special' && seg.value === '*').length;
+	// Pass 1: Flatten segments
+	let segments = [];
+	let currentBeat = 0;
+	for (let beat of measureBeats) {
+		let subdivisionsInBeat = beat.content.length;
+		let subdivisionDuration = beat.duration / subdivisionsInBeat;
+		for (let j = 0; j < beat.content.length; j++) {
+			let seg = beat.content[j];
+			segments.push({
+				type: seg.type,
+				value: seg.value,
+				beat: currentBeat,
+				subdivisionIndex: j,
+				subdivisionDuration: subdivisionDuration
+			});
 		}
-		if (isAttackBeat) {
-			// Look ahead for consecutive dash beats to extend the duration of the last attack
-			let duration = 1; // each attack beat contributes 1 beat
-			let j = i + 1;
-			while (j < measureBeats.length &&
-				measureBeats[j].content.length === 1 &&
-				measureBeats[j].content[0].type === 'Special' &&
-				measureBeats[j].content[0].value === '-') {
-				duration++;
-				j++;
-			}
-			// For multiple attacks in a beat (e.g., "Hap.py"), the beat is already subdivided.
-			// The duration applies to the entire beat, but each subdivision gets a fraction.
-			// However, in FQS, a dash after a multi-attack beat would be a separate beat, which is not allowed.
-			// We'll assume dash extension only applies when numAttacks === 1.
-			// For numAttacks > 1, the beat is already filled with subdivisions, and dashes would be separate beats (unlikely).
-			// We'll ignore dashes for multi-attack beats for now.
-			if (numAttacks === 1) {
-				// Single attack (syllable or asterisk) possibly extended by dashes
-				// Consume a pitch
-				if (pitchIndex >= pitchQueue.length) {
+		currentBeat += beat.duration;
+	}
+
+	// Pass 2: Build tokens
+	let tokens = [];
+	let pendingAttack = null;
+	let segIndex = 0;
+	while (segIndex < segments.length) {
+		let seg = segments[segIndex];
+		if (seg.type === 'Special' && seg.value === ';') {
+			// Rest: finalize any pending attack and add a rest
+			if (pendingAttack) {
+				let duration = computeDuration(pendingAttack, seg);
+				let { elem: pitchElem } = getNextPitch(pitchQueue, pendingAttack.pitchIndex);
+				if (!pitchElem) {
 					console.error('Not enough pitches');
 					break;
-				}
-				let pitchElem = pitchQueue[pitchIndex++];
-				while (pitchElem && pitchElem.type !== 'Pitch') {
-					pitchElem = pitchQueue[pitchIndex++];
 				}
 				let currentPitch = calculatePitch(pitchElem, prevPitchState);
 				prevPitchState = currentPitch;
 				let abcPitch = convertAbsolutePitch(currentPitch.letter, currentPitch.octave, pitchElem.accidental);
-				let durationStr = duration === 1 ? '' : duration.toString();
-				tokens.push(abcPitch + durationStr);
-				i = j;
-			} else {
-				// Multiple attacks in a single beat (e.g., "Hap.py")
-				// Each attack gets a fraction of the beat. No dash extension.
-				let notes = [];
-				for (let k = 0; k < numAttacks; k++) {
-					if (pitchIndex >= pitchQueue.length) {
-						console.error('Not enough pitches');
-						break;
-					}
-					let pitchElem = pitchQueue[pitchIndex++];
-					while (pitchElem && pitchElem.type !== 'Pitch') {
-						pitchElem = pitchQueue[pitchIndex++];
-					}
-					let currentPitch = calculatePitch(pitchElem, prevPitchState);
-					prevPitchState = currentPitch;
-					let abcPitch = convertAbsolutePitch(currentPitch.letter, currentPitch.octave, pitchElem.accidental);
-					notes.push(abcPitch);
-				}
-				let beatStr = convertMultipleAttacks(numAttacks, notes);
-				tokens.push(beatStr);
-				i++;
+				tokens.push(abcPitch + convertDurationToABC(duration));
+				pendingAttack = null;
 			}
+			// Rest duration: until the next attack or end of measure
+			let restStart = seg;
+			let nextAttackIndex = findNextAttack(segments, segIndex + 1);
+			let restEnd;
+			if (nextAttackIndex !== -1) {
+				restEnd = segments[nextAttackIndex];
+				segIndex = nextAttackIndex;
+			} else {
+				restEnd = { beat: currentBeat, subdivisionIndex: 0, subdivisionDuration: 0 };
+				segIndex = segments.length;
+			}
+			let restDuration = computeDuration(restStart, restEnd);
+			tokens.push('z' + convertDurationToABC(restDuration));
 		}
-		// Rest beat
-		else if (firstSeg.type === 'Special' && firstSeg.value === ';') {
-			tokens.push('z');
-			i++;
+		else if (isAttackSegment(seg)) {
+			if (pendingAttack) {
+				// Finalize pending attack
+				let duration = computeDuration(pendingAttack, seg);
+				let { elem: pitchElem } = getNextPitch(pitchQueue, pendingAttack.pitchIndex);
+				if (!pitchElem) {
+					console.error('Not enough pitches');
+					break;
+				}
+				let currentPitch = calculatePitch(pitchElem, prevPitchState);
+				prevPitchState = currentPitch;
+				let abcPitch = convertAbsolutePitch(currentPitch.letter, currentPitch.octave, pitchElem.accidental);
+				tokens.push(abcPitch + convertDurationToABC(duration));
+			}
+			// Start new attack
+			let { elem: pitchElem, newIndex: newPitchIndex } = getNextPitch(pitchQueue, pitchIndex);
+			if (!pitchElem) {
+				console.error('Not enough pitches');
+				break;
+			}
+			pendingAttack = {
+				beat: seg.beat,
+				subdivisionIndex: seg.subdivisionIndex,
+				subdivisionDuration: seg.subdivisionDuration,
+				pitchIndex: pitchIndex
+			};
+			pitchIndex = newPitchIndex;
+			segIndex++;
 		}
-		// Dash beat (should have been consumed by attack lookahead)
-		else if (firstSeg.type === 'Special' && firstSeg.value === '-') {
-			console.warn('Dash beat without preceding attack in measure');
-			i++;
+		else if (seg.type === 'Special' && seg.value === '-') {
+			// Dash: extends the pending attack, so we just skip and let the duration accumulate
+			segIndex++;
 		}
-		// Other specials (like '=') ignored
 		else {
-			console.warn(`Unhandled beat type: ${firstSeg.type} value: ${firstSeg.value}`);
-			i++;
+			// Other segments (like '=') are ignored for now
+			segIndex++;
 		}
 	}
+
+	// If there's a pending attack at the end of the measure, finalize it
+	if (pendingAttack) {
+		let duration = computeDuration(pendingAttack, { beat: currentBeat, subdivisionIndex: 0, subdivisionDuration: 0 });
+		let { elem: pitchElem } = getNextPitch(pitchQueue, pendingAttack.pitchIndex);
+		if (pitchElem) {
+			let currentPitch = calculatePitch(pitchElem, prevPitchState);
+			prevPitchState = currentPitch;
+			let abcPitch = convertAbsolutePitch(currentPitch.letter, currentPitch.octave, pitchElem.accidental);
+			tokens.push(abcPitch + convertDurationToABC(duration));
+		}
+	}
+
 	return { tokens, newPitchIndex: pitchIndex, newPrevPitchState: prevPitchState };
 }
 
 // =============================================================================
 // Main Conversion Function
 // =============================================================================
+
+/**
+ * Calculate the total beats in a measure (array of BeatTuples).
+ * @param {Array<Object>} measureBeats - BeatTuples in the measure
+ * @returns {number} total beats
+ */
+function measureDuration(measureBeats) {
+	let total = 0;
+	for (let beat of measureBeats) {
+		total += beat.duration;
+	}
+	return total;
+}
 
 /**
  * Convert miniFQS AST to ABC notation
@@ -315,6 +403,20 @@ export function convertToABC(ast) {
 		let meter = '4/4';
 		if (block.counter && block.counter.value) {
 			meter = `${block.counter.value}/4`;
+		} else {
+			// Infer meter from the first measure's total beats
+			// Group lyric items by measures to get the first measure
+			let firstMeasureBeats = [];
+			for (const item of block.lyrics) {
+				if (item.type === 'Barline') {
+					break;
+				}
+				firstMeasureBeats.push(item);
+			}
+			if (firstMeasureBeats.length > 0) {
+				let totalBeats = measureDuration(firstMeasureBeats);
+				meter = `${totalBeats}/4`;
+			}
 		}
 		lines.push(`M:${meter}`);
 		lines.push('L:1/4'); // Default unit note length (quarter note)

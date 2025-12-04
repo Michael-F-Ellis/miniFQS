@@ -32,6 +32,9 @@
 miniFQS/
 ├── fqs.pegjs          # Grammar definition (PEG.js)
 ├── parser.js          # Generated parser (do not edit directly)
+├── fqs2ast.js         # Command-line utility: FQS text to AST (JSON)
+├── ast2flat.js        # Command-line utility: AST to flattened TSV table
+├── ast2abc.js         # Command-line utility: AST to ABC notation (currently mothballed)
 ├── layout.js          # Layout engine (ES module)
 ├── mini-fqs.js        # Web component (ES module)
 ├── index.html         # Main demo page

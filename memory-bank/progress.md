@@ -21,6 +21,13 @@ n# Progress
    - Responds to `score` attribute/property changes
    - Displays error messages for invalid input
 
+4. **Pipeline Utilities** (New)
+   - Created `ast2flat.js`: flattens AST into tabular TSV format for debugging and pipeline processing
+   - Includes all AST information: lyrics, pitches, barlines, key signatures, subdivisions
+   - Outputs 1‑based indices (block, measure, beat, subdivision) for musician‑friendly counting
+   - Handles initial key signature from `block.pitches.keySignature`
+   - Tested with `test_happy.fqs` and `test_dotted_rhythms.fqs`
+
 ### Tutorial System (In Progress)
 1. **Framework Complete**
    - Directory structure created (`tutorial/`)
