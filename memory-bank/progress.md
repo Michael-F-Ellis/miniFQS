@@ -78,6 +78,28 @@ n# Progress
    - Tested with multiple examples including octave shifts and LilyPond Rule verification
    - Integrates seamlessly: `fqs2ast.js | ast2flat.js | pitch-octaves.js`
 
+3. **map-pitches Utility**
+   - Pipeline stage 3: maps pitches to attacks in lyric rows
+   - Attack detection: identifies syllables and asterisks as attacks (same logic as `abc-converter.js`)
+   - Pitch consumption: each attack consumes one pitch, skipping non-pitch elements (KeySig, Barline)
+   - Pitch replication: dashes (`-`) receive the same pitch information as the preceding attack (for tie/extension)
+   - Cross-block handling: when a block starts with a dash, carries over pitch from previous block
+   - State management: maintains last pitch per block, resetting at block boundaries and after rests (except for cross-block dashes)
+   - Per-block mapping: maintains separate pitch queues for each block
+   - Output format: fills existing pitch columns (`pitch_note`, `pitch_acc`, `pitch_oct`) in lyric attack rows and dash rows while preserving all original rows
+   - Testing: verified with `test_happy.fqs`, `test_simple.fqs`, and `test_dotted_rhythms.fqs` (dashes correctly replicate pitch)
+   - Corner case fix: handles cross-block dash extensions correctly (tested with `test_octave_reset.fqs`)
+   - Integration: complete pipeline: `fqs2ast.js | ast2flat.js | pitch-octaves.js | map-pitches.js`
+
+4. **Cross-Block Continuation Fix** (New)
+   - **Problem**: When a note is extended to the next block with a dash, pitch and octave must remain the same, and LilyPond rule should continue from carried-over state
+   - **Solution in pitch-octaves.js**: Detects blocks starting with dashes, carries over previous pitch state instead of resetting to C4
+   - **Solution in map-pitches.js**: Carries over pitch information for dashes at block starts
+   - **Testing**: Verified with `test_octave_reset.fqs`:
+     - Block 3 correctly carries over c5 state, producing f5, g5, a5, b5, c6
+     - Dash in block 3 correctly receives pitch c5 from block 2
+   - **Result**: Both utilities now handle cross-block continuations correctly while maintaining proper reset behavior for blocks not starting with dashes
+
 ## What's Left to Build
 
 ### Tutorial Content (High Priority)

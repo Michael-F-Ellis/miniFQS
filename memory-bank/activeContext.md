@@ -80,6 +80,32 @@ The primary focus is on **tutorial development and user education**. The core mi
   - `test_lilypond.fqs`: LilyPond Rule correctly applied (b to c jumps to octave 5, c to b returns to octave 4)
 - **Integration**: Works seamlessly in the pipeline: `fqs2ast.js | ast2flat.js | pitch-octaves.js`
 
+### 12. Created map-pitches Utility (New)
+- **Pipeline stage 3**: Created `map-pitches.js` that maps pitches to attacks in lyric rows.
+- **Attack detection**: Identifies syllables and asterisks as attacks (same logic as `abc-converter.js`).
+- **Pitch consumption**: Each attack consumes one pitch, skipping non-pitch elements (KeySig, Barline).
+- **Pitch replication**: Dashes (`-`) receive the same pitch information as the preceding attack (for tie/extension).
+- **State management**: Maintains last pitch per block, resetting at block boundaries and after rests.
+- **Per-block mapping**: Maintains separate pitch queues for each block, resetting at block boundaries.
+- **Output format**: Fills existing pitch columns (`pitch_note`, `pitch_acc`, `pitch_oct`) in lyric attack rows and dash rows while preserving all original rows.
+- **Testing**: Verified with multiple test files:
+  - `test_happy.fqs`: 6 attacks correctly mapped to 6 pitches (Hap→c4, py→c4, birth→d4, day→c4, to→f4, you→e4)
+  - `test_simple.fqs`: Asterisk attacks correctly mapped to pitches
+  - `test_dotted_rhythms.fqs`: All attacks and dashes correctly receive pitch information (dashes replicate preceding attack pitch)
+- **Integration**: Complete pipeline: `fqs2ast.js | ast2flat.js | pitch-octaves.js | map-pitches.js`
+
+### 13. Fixed Corner Case: Cross-Block Dash Extensions (New)
+- **Problem identified**: When a note is extended to the next block with a dash (`-`), the pitch and octave must remain the same, and the LilyPond rule should continue from that carried-over state.
+- **Solution in pitch-octaves.js**: Modified to detect blocks that start with a dash and carry over the previous pitch state instead of resetting to C4.
+  - Blocks starting with dashes maintain `prevLetter` and `prevOctave` from previous block
+  - Other blocks reset to C4 as before
+  - Verified with `test_octave_reset.fqs`: Block 3 correctly carries over c5 state, producing f5, g5, a5, b5, c6
+- **Solution in map-pitches.js**: Modified to carry over pitch information for dashes at block starts.
+  - Detects blocks starting with dashes
+  - Carries over last pitch from previous block for the dash
+  - Verified: Dash in block 3 correctly receives pitch c5 from block 2
+- **Testing**: Both utilities now handle cross-block continuations correctly while maintaining proper reset behavior for blocks not starting with dashes.
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy

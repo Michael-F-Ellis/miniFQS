@@ -146,58 +146,82 @@ function processTSV() {
 		const headers = lines[0].split('\t');
 		const outputRows = [lines[0]]; // Keep header as-is
 
+		// Create a map of field name to index
+		const fieldMap = {};
+		headers.forEach((header, index) => {
+			fieldMap[header] = index;
+		});
+
 		// State for pitch calculation
 		let currentBlock = null;
 		let prevPitchState = { letter: 'c', octave: 4 }; // Start at C4 (middle C)
 		let pitchRows = []; // Store pitch rows for processing
+		let blockStartsWithDash = {}; // Track which blocks start with a dash
 
-		// First pass: collect pitch rows and their positions
+		// First pass: analyze all rows to detect block starts with dashes
 		for (let i = 1; i < lines.length; i++) {
 			const fields = lines[i].split('\t');
-			const block = fields[headers.indexOf('block')] || '';
+			const block = fields[fieldMap.block] || '';
+			const source = fields[fieldMap.source] || '';
+			const type = fields[fieldMap.type] || '';
+			const value = fields[fieldMap.value] || '';
 
-			// Reset pitch state when block changes
-			if (block !== currentBlock) {
-				currentBlock = block;
-				prevPitchState = { letter: 'c', octave: 4 }; // Reset to C4 for new block
-			}
-
-			const pitch = parsePitchRow(fields, headers);
-			if (pitch) {
-				pitch.rowIndex = i;
-				pitch.fields = fields;
-				pitch.block = block;
-				pitchRows.push(pitch);
+			// Check if this is the first lyric row in a block and it's a dash
+			if (source === 'lyrics' && !blockStartsWithDash.hasOwnProperty(block)) {
+				blockStartsWithDash[block] = (type === 'Special' && value === '-');
 			}
 
 			// Store the row for later output
 			outputRows.push(fields);
 		}
 
-		// Second pass: calculate octaves for pitch rows
+		// Second pass: calculate octaves for pitch rows with proper block transition logic
 		currentBlock = null;
 		prevPitchState = { letter: 'c', octave: 4 };
 
-		for (const pitch of pitchRows) {
-			// Reset pitch state when block changes
-			if (pitch.block !== currentBlock) {
-				currentBlock = pitch.block;
-				prevPitchState = { letter: 'c', octave: 4 };
+		for (let i = 1; i < lines.length; i++) {
+			const fields = lines[i].split('\t');
+			const block = fields[fieldMap.block] || '';
+			const source = fields[fieldMap.source] || '';
+
+			// Handle block transitions
+			if (block !== currentBlock) {
+				currentBlock = block;
+				// Check if this block starts with a dash
+				if (blockStartsWithDash[block]) {
+					// Block starts with dash: carry over previous pitch state
+					// Don't reset prevPitchState
+					if (debug) {
+						console.error(`Debug: Block ${block} starts with dash, carrying over pitch state: ${prevPitchState.letter}${prevPitchState.octave}`);
+					}
+				} else {
+					// Block doesn't start with dash: reset to C4
+					prevPitchState = { letter: 'c', octave: 4 };
+					if (debug) {
+						console.error(`Debug: Block ${block} doesn't start with dash, resetting to C4`);
+					}
+				}
 			}
 
-			// Calculate octave
-			const calculated = calculatePitch(pitch, prevPitchState);
-			prevPitchState = calculated;
+			// Process pitch rows
+			if (source === 'pitches') {
+				const pitch = parsePitchRow(fields, headers);
+				if (pitch) {
+					// Calculate octave
+					const calculated = calculatePitch(pitch, prevPitchState);
+					prevPitchState = calculated;
 
-			// Update the row in outputRows
-			updatePitchOctave(outputRows[pitch.rowIndex], headers, calculated.octave);
+					// Update the row in outputRows
+					updatePitchOctave(outputRows[i], headers, calculated.octave);
 
-			if (debug) {
-				console.error(`Debug: Pitch ${pitch.note} with shifts "${pitch.octaveShifts}" -> octave ${calculated.octave}`, {
-					block: pitch.block,
-					prevLetter: prevPitchState.letter,
-					prevOctave: prevPitchState.octave
-				});
+					if (debug) {
+						console.error(`Debug: Pitch ${pitch.note} with shifts "${pitch.octaveShifts}" -> octave ${calculated.octave}`, {
+							block: block,
+							prevLetter: prevPitchState.letter,
+							prevOctave: prevPitchState.octave
+						});
+					}
+				}
 			}
 		}
 
