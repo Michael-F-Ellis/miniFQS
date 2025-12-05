@@ -100,6 +100,15 @@ n# Progress
      - Dash in block 3 correctly receives pitch c5 from block 2
    - **Result**: Both utilities now handle cross-block continuations correctly while maintaining proper reset behavior for blocks not starting with dashes
 
+5. **abcprep Utility** (New)
+   - **Pipeline stage 4**: Adds ABC header rows and columns to TSV output
+   - **Minimal transformation**: Inserts 5 header rows (source='abchdr') for ABC headers: X:, T:, K:, M:, L:
+   - **Column addition**: Adds two new columns 'abc0' and 'abc' at the end of all rows
+   - **Default values**: X:1, K:C major, L:1/4 have defaults; T: and M: left empty for later stages
+   - **Flexible placement**: Can be inserted at any pipeline position (after ast2flat.js or after map-pitches.js)
+   - **Testing**: Verified with `test_simple.fqs`, `test_happy.fqs`, and `test_dotted_rhythms.fqs`
+   - **Integration**: Complete pipeline: `fqs2ast.js | ast2flat.js | pitch-octaves.js | map-pitches.js | abcprep.js`
+
 ## What's Left to Build
 
 ### Tutorial Content (High Priority)

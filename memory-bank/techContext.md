@@ -34,6 +34,9 @@ miniFQS/
 ├── parser.js          # Generated parser (do not edit directly)
 ├── fqs2ast.js         # Command-line utility: FQS text to AST (JSON)
 ├── ast2flat.js        # Command-line utility: AST to flattened TSV table
+├── pitch-octaves.js   # Pipeline stage: calculate absolute octaves for pitches
+├── map-pitches.js     # Pipeline stage: map pitches to lyric attacks
+├── abcprep.js         # Pipeline stage: add ABC header rows and columns
 ├── ast2abc.js         # Command-line utility: AST to ABC notation (currently mothballed)
 ├── layout.js          # Layout engine (ES module)
 ├── mini-fqs.js        # Web component (ES module)

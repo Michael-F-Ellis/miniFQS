@@ -106,6 +106,18 @@ The primary focus is on **tutorial development and user education**. The core mi
   - Verified: Dash in block 3 correctly receives pitch c5 from block 2
 - **Testing**: Both utilities now handle cross-block continuations correctly while maintaining proper reset behavior for blocks not starting with dashes.
 
+### 14. Created abcprep Utility (New)
+- **Pipeline stage 4**: Created `abcprep.js` that adds ABC header rows and columns to the TSV output.
+- **Minimal transformation**: Adds 5 header rows (source='abchdr') for ABC headers: X:, T:, K:, M:, L: with default values in 'abc0' column.
+- **Column addition**: Adds two new columns 'abc0' and 'abc' at the end of all rows.
+- **Default values**: X:1, K:C major, L:1/4 have defaults; T: and M: left empty to be filled later by abcgen.js.
+- **Flexible placement**: Can be inserted at any point in the pipeline (after ast2flat.js or after map-pitches.js).
+- **Testing**: Verified with multiple test files:
+  - `test_simple.fqs`: Correctly adds 5 header rows and two new columns
+  - `test_happy.fqs`: Header rows appear before lyric/pitch data
+  - `test_dotted_rhythms.fqs`: Works with dotted rhythm patterns
+- **Integration**: Pipeline now: `fqs2ast.js | ast2flat.js | pitch-octaves.js | map-pitches.js | abcprep.js`
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy
