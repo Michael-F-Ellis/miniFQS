@@ -130,6 +130,24 @@ The primary focus is on **tutorial development and user education**. The core mi
   - `test_happy.fqs`: Key signature `K&1` correctly converted to `[K:F major]`
 - **Integration**: Complete pipeline: `fqs2ast.js | ast2flat.js | pitch-octaves.js | map-pitches.js | abcprep.js | abckeysig.js`
 
+### 16. Updated Key Signature Placement Strategy (New)
+- **Problem identified**: Key signatures were being written to pitch rows (source='pitches', type='KeySig'), which lack temporal alignment and don't concatenate properly.
+- **New strategy (Option 2)**: Place key signatures in the `abc0` column of lyric barline rows:
+  - First key signature: placed in the `K:` header row (source='abchdr', value='K:') without brackets (e.g., `C major`)
+  - Subsequent key signatures: appended to preceding lyric barline rows as `| [K:X major]`
+- **Implementation**: Modified `abckeysig.js` to:
+  - Collect key signatures in order from pitch rows
+  - Place first key signature in K: header row
+  - Collect lyric barlines in order
+  - Attach subsequent key signatures to corresponding barlines (key signature k → barline k-1)
+- **Format**: `[K:Eb major]` (with space before 'major') as per ABCJS tolerance
+- **Testing**: Verified with `test_keysig_changes.fqs`:
+  - K: header shows `C major`
+  - Barline after measure 1 shows `| [K:F# major]`
+  - Barline after measure 2 shows `| [K:Eb major]`
+  - Barline after measure 3 shows `|` (no key signature)
+- **Concatenation**: When `abc0` column values are concatenated in order, they produce proper ABC syntax with inline key signatures at measure boundaries.
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy

@@ -111,14 +111,21 @@ n# Progress
 
 6. **abckeysig Utility** (New)
    - **Pipeline stage 5**: Writes barlines and key signatures to the `abc0` column in correct ABC syntax
-   - **Barline handling**: Copies `|` directly to `abc0` column for both lyric and pitch barlines
+   - **Key signature placement strategy**: 
+     - First key signature placed in K: header row (without brackets, e.g., `C major`)
+     - Subsequent key signatures appended to preceding lyric barline rows as `| [K:X major]`
+   - **Barline handling**: Copies `|` directly to `abc0` column for lyric barlines (and pitch barlines if not already set)
    - **Key signature conversion**: Translates FQS key signatures (e.g., `K#6`, `K&3`, `K0`) to ABC inline format `[K:F# major]`, `[K:Eb major]`, `[K:C major]`
    - **Mapping reuse**: Uses the same `KEY_SIGNATURE_MAP` from `abc-converter.js` for consistency
-   - **Inline format**: Follows ABC specification: key signatures must be enclosed in square brackets and begin with `K:`
+   - **Inline format**: Follows ABC specification: key signatures must be enclosed in square brackets and begin with `K:` (with space before 'major')
    - **Testing**: Verified with multiple test files:
-     - `test_keysig_changes.fqs`: Correctly converts `K0`→`[K:C major]`, `K#6`→`[K:F# major]`, `K&3`→`[K:Eb major]`
-     - `test_simple.fqs`: Barlines get `|` in `abc0`, initial key signature `K0` converted
-     - `test_happy.fqs`: Key signature `K&1` correctly converted to `[K:F major]`
+     - `test_keysig_changes.fqs`: 
+       - K: header shows `C major`
+       - Barline after measure 1 shows `| [K:F# major]`
+       - Barline after measure 2 shows `| [K:Eb major]`
+       - Barline after measure 3 shows `|` (no key signature)
+     - `test_simple.fqs`: Barlines get `|` in `abc0`, initial key signature `K0` converted to `C major` in K: header
+     - `test_happy.fqs`: Key signature `K&1` correctly converted to `F major` in K: header
    - **Integration**: Complete pipeline: `fqs2ast.js | ast2flat.js | pitch-octaves.js | map-pitches.js | abcprep.js | abckeysig.js`
 
 ## What's Left to Build

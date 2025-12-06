@@ -83,6 +83,22 @@ function convertKeySignature(fqsKey) {
 	return `[K:${abcKey} major]`;
 }
 
+/**
+ * Convert FQS key signature to ABC header format (no brackets)
+ * @param {string} fqsKey - FQS key signature value
+ * @returns {string} ABC header key signature (e.g., 'C major', 'F# major', 'Eb major')
+ */
+function convertKeySignatureHeader(fqsKey) {
+	const abcKey = KEY_SIGNATURE_MAP[fqsKey];
+	if (!abcKey) {
+		if (debug) {
+			console.error(`Debug: Unknown key signature '${fqsKey}', defaulting to C major`);
+		}
+		return 'C major';
+	}
+	return `${abcKey} major`;
+}
+
 // =============================================================================
 // Main Processing Function
 // =============================================================================
@@ -117,34 +133,122 @@ function processTSV() {
 			process.exit(1);
 		}
 
+		// Collect all rows for processing
+		const rows = [];
+		for (let i = 1; i < lines.length; i++) {
+			rows.push(lines[i].split('\t'));
+		}
+
+		// Collect key signatures in order
+		const keySignatures = [];
+		for (let i = 0; i < rows.length; i++) {
+			const fields = rows[i];
+			const type = fields[fieldMap.type] || '';
+			const value = fields[fieldMap.value] || '';
+			if (type === 'KeySig') {
+				keySignatures.push({
+					index: i,
+					fqsKey: value,
+					abcInline: convertKeySignature(value),
+					abcHeader: convertKeySignatureHeader(value)
+				});
+			}
+		}
+
+		if (debug) {
+			console.error(`Debug: Found ${keySignatures.length} key signatures`);
+		}
+
+		// Process first key signature (place in K: header row)
+		if (keySignatures.length > 0) {
+			const firstKeySig = keySignatures[0];
+			// Find K: header row
+			for (let i = 0; i < rows.length; i++) {
+				const fields = rows[i];
+				const source = fields[fieldMap.source] || '';
+				const value = fields[fieldMap.value] || '';
+				if (source === 'abchdr' && value === 'K:') {
+					fields[fieldMap.abc0] = firstKeySig.abcHeader;
+					if (debug) {
+						console.error(`Debug: Set K: header to '${firstKeySig.abcHeader}'`);
+					}
+					break;
+				}
+			}
+		}
+
+		// Collect lyric barlines in order
+		const lyricBarlines = [];
+		for (let i = 0; i < rows.length; i++) {
+			const fields = rows[i];
+			const source = fields[fieldMap.source] || '';
+			const type = fields[fieldMap.type] || '';
+			if (source === 'lyrics' && type === 'Barline') {
+				lyricBarlines.push({
+					index: i,
+					fields: fields
+				});
+			}
+		}
+
+		if (debug) {
+			console.error(`Debug: Found ${lyricBarlines.length} lyric barlines`);
+		}
+
+		// Process subsequent key signatures (attach to lyric barlines in order)
+		// First key signature (k=0) already handled (K: header)
+		// For each remaining key signature, attach to corresponding barline
+		// Key signature k (1-based) attaches to barline k-1 (0-based)
+		for (let k = 1; k < keySignatures.length; k++) {
+			const keySig = keySignatures[k];
+			const barlineIndex = k - 1; // first subsequent key -> first barline, second -> second, etc.
+
+			if (barlineIndex < lyricBarlines.length) {
+				const barline = lyricBarlines[barlineIndex];
+				const barlineFields = barline.fields;
+				// Append key signature to barline: "| [K:X major]"
+				const currentAbc0 = barlineFields[fieldMap.abc0] || '';
+				if (currentAbc0 === '|' || currentAbc0 === '') {
+					barlineFields[fieldMap.abc0] = `| ${keySig.abcInline}`;
+				} else {
+					// If barline already has something, append with space
+					barlineFields[fieldMap.abc0] = `${currentAbc0} ${keySig.abcInline}`;
+				}
+				if (debug) {
+					console.error(`Debug: Attached ${keySig.abcInline} to barline at row ${barline.index + 2}`);
+				}
+			} else {
+				if (debug) {
+					console.error(`Debug: No barline available for key signature ${keySig.fqsKey} (index ${k})`);
+				}
+			}
+		}
+
+		// Process barlines (for rows without key signatures)
+		for (let i = 0; i < rows.length; i++) {
+			const fields = rows[i];
+			const type = fields[fieldMap.type] || '';
+			const value = fields[fieldMap.value] || '';
+			const source = fields[fieldMap.source] || '';
+
+			if (type === 'Barline') {
+				// Only set if abc0 is empty (not already set by key signature attachment)
+				const currentAbc0 = fields[fieldMap.abc0] || '';
+				if (currentAbc0 === '') {
+					fields[fieldMap.abc0] = value; // value should be '|'
+					if (debug && value !== '|') {
+						console.error(`Debug: Barline with unexpected value '${value}'`);
+					}
+				}
+			}
+		}
+
 		// Output header unchanged
 		outputRow(headers);
 
-		// Process each data row
-		for (let i = 1; i < lines.length; i++) {
-			const fields = lines[i].split('\t');
-			const type = fields[fieldMap.type] || '';
-			const value = fields[fieldMap.value] || '';
-
-			// Handle barlines and key signatures
-			if (type === 'Barline') {
-				// Barline: copy '|' to abc0 column
-				fields[fieldMap.abc0] = value; // value should be '|'
-				if (debug && value !== '|') {
-					console.error(`Debug: Barline with unexpected value '${value}'`);
-				}
-			} else if (type === 'KeySig') {
-				// Key signature: convert to ABC inline format
-				const abcKeySig = convertKeySignature(value);
-				fields[fieldMap.abc0] = abcKeySig;
-				if (debug) {
-					console.error(`Debug: Converted ${value} -> ${abcKeySig}`);
-				}
-			}
-			// Other rows: leave abc0 unchanged (may be empty or contain default values from abcprep)
-
-			// Output the row
-			outputRow(fields);
+		// Output all rows
+		for (let i = 0; i < rows.length; i++) {
+			outputRow(rows[i]);
 		}
 	});
 }
