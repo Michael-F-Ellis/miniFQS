@@ -38,6 +38,32 @@ miniFQS follows a modular, web-centric architecture with clear separation betwee
 - **JavaScript**: `tutorial.js` fetches JSON, generates example containers with four columns (FQS Syntax, miniFQS Rendering, ABC Notation & Playback, ABC Code).
 - **Design**: Centralized data storage for easy maintenance and extension, with dynamic generation eliminating redundant HTML.
 
+### 5. FQS-to-ABC Pipeline System
+- **Pattern**: Modular Unix-style pipeline of command-line utilities, each performing a single transformation.
+- **Pipeline Stages**:
+  1. **fqs2ast.js**: Parses FQS text to AST (JSON)
+  2. **ast2flat.js**: Flattens AST to tabular TSV format for debugging and processing
+  3. **pitch-octaves.js**: Calculates absolute octaves using LilyPond Rule
+  4. **map-pitches.js**: Maps pitch information to lyric attacks
+  5. **abcprep.js**: Adds ABC header rows and columns to TSV
+  6. **abcmeter.js**: Adds meter (time signature) changes
+  7. **abckeysig.js**: Adds key signatures and barlines in ABC format
+  8. **abcnotes.js**: Converts pitch/rhythm to ABC note syntax
+  9. **abcgen.js**: Generates final ABC notation string
+- **Design Philosophy**: Each stage reads from stdin and writes to stdout, enabling flexible composition and debugging.
+- **Data Format**: Intermediate stages use TSV (tab-separated values) for human/AI inspection and processing.
+
+### 6. fqspipe.js Command-Line Wrapper
+- **Pattern**: Convenience wrapper that orchestrates the full pipeline with a unified interface.
+- **Features**:
+  - Runs full pipeline by default (FQS → ABC notation)
+  - Supports stopping at intermediate stages for debugging (`--stop=STAGE`)
+  - Provides help documentation (`-h` option) showing all pipeline components
+  - Accepts input from file or stdin
+  - Proper error handling with exit codes
+- **Implementation**: Uses Node.js child processes to pipe output between stages, maintaining proper stream handling and error propagation.
+- **Usage Pattern**: `node fqspipe.js [OPTIONS] [FILE]` or `node fqspipe.js < input.fqs`
+
 ## Data Flow Patterns
 
 ### Score Processing Pipeline
@@ -45,9 +71,19 @@ miniFQS follows a modular, web-centric architecture with clear separation betwee
 FQS Text → Parser (AST) → Layout Engine (Commands) → SVG Generation → DOM
 ```
 
+### FQS-to-ABC Conversion Pipeline
+```
+FQS Text → fqs2ast.js (AST JSON) → ast2flat.js (TSV) → pitch-octaves.js (TSV) → map-pitches.js (TSV) → abcprep.js (TSV) → abcmeter.js (TSV) → abckeysig.js (TSV) → abcnotes.js (TSV) → abcgen.js (ABC)
+```
+
 ### Tutorial Example Pipeline
 ```
 examples.json (structured data) → tutorial.js (dynamic generation) → HTML Example Containers (4 columns) → mini-fqs & abcjs rendering
+```
+
+### fqspipe.js Pipeline Orchestration
+```
+Input (FQS) → Stage 1 (parse) → Stage 2 (flat) → ... → Stage N (stop point) → Output (JSON/TSV/ABC)
 ```
 
 ### State Management
@@ -87,12 +123,18 @@ examples.json (structured data) → tutorial.js (dynamic generation) → HTML Ex
 - Copy buttons are dynamically injected and manage their own state (for both FQS and ABC code).
 - ABCjs integration waits for library load and then renders standard notation and MIDI controls.
 
+### 6. Pipeline Pattern (FQS-to-ABC Conversion)
+- Each stage performs a single transformation and passes output to next stage.
+- Enables debugging by stopping at intermediate points (`--stop=STAGE`).
+- Follows Unix philosophy: "Write programs that do one thing and do it well."
+
 ## Integration Patterns
 
 ### Module Dependencies
 ```
 mini-fqs.js → parser.js, layout.js
 tutorial/index.html → tutorial/js/tutorial.js, ../mini-fqs.js
+fqspipe.js → fqs2ast.js, ast2flat.js, pitch-octaves.js, map-pitches.js, abcprep.js, abcmeter.js, abckeysig.js, abcnotes.js, abcgen.js
 ```
 
 ### Build Process

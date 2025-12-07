@@ -128,6 +128,78 @@ n# Progress
      - `test_happy.fqs`: Key signature `K&1` correctly converted to `F major` in K: header
    - **Integration**: Complete pipeline: `fqs2ast.js | ast2flat.js | pitch-octaves.js | map-pitches.js | abcprep.js | abckeysig.js`
 
+7. **abcmeter Utility** (New)
+   - **Pipeline stage 6**: Adds meter (time signature) information to the `abc0` column
+   - **Placement**: Must be placed before `abckeysig.js` because meter appears before key signature in musical notation
+   - **Functionality**: Analyzes beat counts per measure and inserts `M:` directives for meter changes
+   - **Implementation**:
+     - Calculates beats per measure using `beat` column (maximum beat value within each measure)
+     - Determines default meter from first measure (e.g., 4 beats → "4/4")
+     - Detects meter changes when beat count differs between consecutive measures
+     - Places meter changes in `abc0` column of first lyric row in affected measures
+     - Updates M: header row with default meter
+   - **Testing**: Verified with `test_rhythms_accidentals_octaves.fqs`:
+     - Measures 1 & 2: 4 beats → "4/4" (default in M: header)
+     - Measure 3: 5 beats → "M:5/4" inserted before measure 3
+     - Measure 4: 4 beats → "M:4/4" inserted before measure 4 (change back to 4/4)
+   - **Integration**: Complete pipeline: `fqs2ast.js | ast2flat.js | pitch-octaves.js | map-pitches.js | abcprep.js | abcmeter.js | abckeysig.js`
+
+8. **abcgen Utility** (New)
+   - **Pipeline stage 8**: Final stage that generates ABC notation from TSV pipeline output
+   - **Function**: Properly formats ABC headers and music body, handling:
+     - Header rows: combines `value` column (header flags) with `abc0` column (header values) to produce complete header lines (X:1, K:C major, etc.)
+     - Music body: outputs `abc0` values from lyric rows (notes and barlines)
+     - Skips pitch rows to avoid duplicate barlines
+     - Applies proper spacing: space after barlines (unless followed by another barline), single spaces between notes
+     - Skips empty T: header when no title present
+   - **Testing**: Produces correct ABC notation with properly formatted headers, no extra barlines, and correct spacing
+
+9. **abcnotes Utility** (New)
+   - **Pipeline stage 7**: Converts pitch/rhythm information to ABC note syntax
+   - **Algorithm**: Processes each beat group (rows with same block, measure, beat):
+     - Counts subdivisions N in the beat
+     - Determines tuplet prefix if N is odd >1: "(N"
+     - Determines duration denominator: power of 2 or largest lower power of 2 for tuplets
+     - For each subdivision: adds tie prefix for dashes, maps accidentals, converts pitch+octave, adds duration
+     - Concatenates all notes in beat without spaces (for beaming)
+   - **Accidental mapping**: `#`→`^`, `##`→`^^`, `&`→`_`, `&&`→`__`, `%`→`=`
+   - **Octave conversion**: C4→`C`, C5→`c`, C6→`c'`, C3→`C,`
+   - **Tie handling**: Dashes (`-`) become tie prefix `-`; accidentals omitted on tied notes (implied from previous)
+   - **Rest handling**: Semicolon `;` becomes `z` with appropriate duration
+   - **Testing**: Verified with `test_rhythms_accidentals_octaves.fqs`:
+     - Produces: `1 C major 4/4 1/4 C -C -C -C| ^C -C ^^C -C| c c' c C c| __c/2c/2 _c/2c/2 (3=c/2c/2c/2 c'/4c'/4c'/4c'/4|||||`
+     - Correctly represents half-notes as tied quarter-notes (e.g., C# half-note → `^C -C`)
+   - **Complete pipeline**: `fqs2ast.js | ast2flat.js | pitch-octaves.js | map-pitches.js | abcprep.js | abcmeter.js | abckeysig.js | abcnotes.js | abcgen.js`
+
+10. **fqspipe.js Command-Line Wrapper** (New)
+    - **Convenience wrapper**: Command-line app to run the full FQS-to-ABC pipeline
+    - **Features**:
+      - Runs full pipeline by default (FQS → ABC notation)
+      - Supports stopping at intermediate stages for debugging (`--stop=STAGE`)
+      - Provides help documentation (`-h` option) showing all pipeline components
+      - Accepts input from file or stdin
+      - Proper error handling with exit codes (0=success, 1=general error, 2=invalid args, 3=stage failure)
+    - **Pipeline stages supported**:
+      1. `parse` → AST JSON (after fqs2ast.js)
+      2. `flat` → TSV (after ast2flat.js)
+      3. `octaves` → TSV with octaves (after pitch-octaves.js)
+      4. `map` → TSV with pitches mapped (after map-pitches.js)
+      5. `prep` → TSV with ABC headers (after abcprep.js)
+      6. `meter` → TSV with meter changes (after abcmeter.js)
+      7. `keysig` → TSV with key signatures (after abckeysig.js)
+      8. `notes` → TSV with ABC note syntax (after abcnotes.js)
+      9. `generate` → Final ABC notation (after abcgen.js)
+    - **Usage examples**:
+      - `node fqspipe.js input.fqs` - Convert FQS to ABC (full pipeline)
+      - `node fqspipe.js < input.fqs` - Read from stdin
+      - `node fqspipe.js --stop=flat input.fqs` - Stop after flattening AST to TSV
+      - `node fqspipe.js --stop=notes input.fqs` - Stop before final ABC generation
+    - **Testing**: Verified with multiple test files:
+      - `test_simple.fqs`: Produces correct ABC notation
+      - `test_happy.fqs`: Handles key signatures and meter correctly
+      - `test_rhythms_accidentals_octaves.fqs`: Processes complex rhythms, accidentals, and octaves
+    - **Implementation**: Uses Node.js child processes to pipe output between stages, maintaining proper stream handling and error propagation
+
 ## What's Left to Build
 
 ### Tutorial Content (High Priority)
