@@ -197,29 +197,41 @@ function processTSV() {
 
 		// Process subsequent key signatures (attach to lyric barlines in order)
 		// First key signature (k=0) already handled (K: header)
-		// For each remaining key signature, attach to corresponding barline
+		// For each remaining key signature, attach to corresponding barline only if key changes
 		// Key signature k (1-based) attaches to barline k-1 (0-based)
+		let currentKey = keySignatures.length > 0 ? keySignatures[0].abcInline : '[K:C major]';
+
 		for (let k = 1; k < keySignatures.length; k++) {
 			const keySig = keySignatures[k];
 			const barlineIndex = k - 1; // first subsequent key -> first barline, second -> second, etc.
 
-			if (barlineIndex < lyricBarlines.length) {
-				const barline = lyricBarlines[barlineIndex];
-				const barlineFields = barline.fields;
-				// Append key signature to barline: "| [K:X major]"
-				const currentAbc0 = barlineFields[fieldMap.abc0] || '';
-				if (currentAbc0 === '|' || currentAbc0 === '') {
-					barlineFields[fieldMap.abc0] = `| ${keySig.abcInline}`;
+			// Only output inline key signature if key actually changes
+			if (keySig.abcInline !== currentKey) {
+				if (barlineIndex < lyricBarlines.length) {
+					const barline = lyricBarlines[barlineIndex];
+					const barlineFields = barline.fields;
+					// Append key signature to barline: "| [K:X major]"
+					const currentAbc0 = barlineFields[fieldMap.abc0] || '';
+					if (currentAbc0 === '|' || currentAbc0 === '') {
+						barlineFields[fieldMap.abc0] = `| ${keySig.abcInline}`;
+					} else {
+						// If barline already has something, append with space
+						barlineFields[fieldMap.abc0] = `${currentAbc0} ${keySig.abcInline}`;
+					}
+					if (debug) {
+						console.error(`Debug: Attached ${keySig.abcInline} to barline at row ${barline.index + 2} (key changed)`);
+					}
 				} else {
-					// If barline already has something, append with space
-					barlineFields[fieldMap.abc0] = `${currentAbc0} ${keySig.abcInline}`;
+					if (debug) {
+						console.error(`Debug: No barline available for key signature ${keySig.fqsKey} (index ${k})`);
+					}
 				}
-				if (debug) {
-					console.error(`Debug: Attached ${keySig.abcInline} to barline at row ${barline.index + 2}`);
-				}
+				// Update current key
+				currentKey = keySig.abcInline;
 			} else {
+				// Key hasn't changed, skip this inline key signature
 				if (debug) {
-					console.error(`Debug: No barline available for key signature ${keySig.fqsKey} (index ${k})`);
+					console.error(`Debug: Skipping redundant key signature ${keySig.fqsKey} (same as current key)`);
 				}
 			}
 		}

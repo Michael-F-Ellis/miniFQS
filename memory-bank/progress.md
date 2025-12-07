@@ -113,7 +113,8 @@ n# Progress
    - **Pipeline stage 5**: Writes barlines and key signatures to the `abc0` column in correct ABC syntax
    - **Key signature placement strategy**: 
      - First key signature placed in K: header row (without brackets, e.g., `C major`)
-     - Subsequent key signatures appended to preceding lyric barline rows as `| [K:X major]`
+     - Subsequent key signatures appended to preceding lyric barline rows as `| [K:X major]` only when key changes
+   - **Redundant key suppression**: Tracks current key state and only outputs inline key signatures when key actually changes
    - **Barline handling**: Copies `|` directly to `abc0` column for lyric barlines (and pitch barlines if not already set)
    - **Key signature conversion**: Translates FQS key signatures (e.g., `K#6`, `K&3`, `K0`) to ABC inline format `[K:F# major]`, `[K:Eb major]`, `[K:C major]`
    - **Mapping reuse**: Uses the same `KEY_SIGNATURE_MAP` from `abc-converter.js` for consistency
@@ -121,11 +122,11 @@ n# Progress
    - **Testing**: Verified with multiple test files:
      - `test_keysig_changes.fqs`: 
        - K: header shows `C major`
-       - Barline after measure 1 shows `| [K:F# major]`
-       - Barline after measure 2 shows `| [K:Eb major]`
-       - Barline after measure 3 shows `|` (no key signature)
+       - Barline after measure 1 shows `| [K:F# major]` (key changes from C to F#)
+       - Barline after measure 2 shows `| [K:Eb major]` (key changes from F# to Eb)
+     - `test_octave_reset.fqs`: No redundant `[K:E major]` inline key signatures (key remains E major throughout)
      - `test_simple.fqs`: Barlines get `|` in `abc0`, initial key signature `K0` converted to `C major` in K: header
-     - `test_happy.fqs`: Key signature `K&1` correctly converted to `F major` in K: header
+     - `test_happy.fqs`: Key signature `K&1` correctly converted to `F major` in K: header, no inline key signatures
    - **Integration**: Complete pipeline: `fqs2ast.js | ast2flat.js | pitch-octaves.js | map-pitches.js | abcprep.js | abckeysig.js`
 
 7. **abcmeter Utility** (New)

@@ -237,6 +237,21 @@ The primary focus is on **tutorial development and user education**. The core mi
   - Key signature changes still work correctly with inline `[K:X major]` notation
 - **Result**: The FQS-to-ABC pipeline now produces properly formatted ABC notation that matches expected output
 
+### 22. Fixed Redundant Key Signatures in ABC Output (New)
+- **Problem identified**: The ABC output contained redundant inline key signatures when the key didn't change between blocks. For example, `test_octave_reset.fqs` produced `[K:E major]` multiple times even though the key remained E major throughout.
+- **Root cause analysis**: `abckeysig.js` was attaching every key signature found in the FQS file to barlines without checking if the key had actually changed from the previous one.
+- **Solution implemented**:
+  - Modified `abckeysig.js` to track the current key state
+  - Only output inline key signatures when the key actually changes
+  - Skip redundant key signatures that are the same as the current key
+  - Maintain proper key state tracking across the entire piece
+- **Testing and verification**:
+  - `test_octave_reset.fqs`: Now produces clean output without redundant `[K:E major]` inline key signatures
+  - `test_keysig_changes.fqs`: Still correctly outputs inline key signatures when keys change (C → F# → Eb)
+  - `test_happy.fqs`: Single key signature (F major) works correctly with no inline key signatures
+  - `test_simple.fqs`: Default C major key works correctly
+- **Result**: The ABC output now follows ABC standard where inline key signatures only appear when the key changes, producing cleaner and more correct notation.
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy
