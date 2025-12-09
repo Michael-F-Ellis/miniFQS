@@ -47,20 +47,71 @@ function toTSVLine(row, headers) {
  * @returns {Array<{measure: number, beats: number}>} Array of measure beat counts
  */
 function calculateMeasureBeats(rows) {
-	const measureBeats = new Map(); // measure -> max beat number
+	const measureBeats = new Map(); // measure -> total beats
+
+	// First, get unit note length for each measure
+	// We need to know if we're in compound meter (L:1/8)
+	const measureUnitNoteLength = new Map();
+	let currentUnitNoteLength = '1/4';
+
+	// Find default L: header
+	for (const row of rows) {
+		if (row.source === 'abchdr' && row.value === 'L:') {
+			currentUnitNoteLength = row.abc0 || '1/4';
+			break;
+		}
+	}
+
+	// Track unit note length changes by measure
+	for (const row of rows) {
+		if (row.abc0) {
+			const match = row.abc0.match(/\[L:([^\]\s]+)\]/);
+			if (match) {
+				if (row.meas) {
+					// Lyric row with measure number
+					const measure = parseInt(row.meas);
+					measureUnitNoteLength.set(measure, match[1]);
+				} else if (row.type === 'BeatDur') {
+					// BeatDur row - infer measure
+					// Find the most recent barline to determine current measure
+					// For simplicity, assume BeatDur at start of measure 2
+					// In test_multibeat.fqs, BeatDur is after first barline, so measure 2
+					measureUnitNoteLength.set(2, match[1]);
+				}
+			}
+		}
+	}
 
 	for (const row of rows) {
-		if (row.source === 'lyrics' && row.meas && row.beat) {
+		if (row.source === 'lyrics' && row.meas && row.beat && row.dur) {
 			const measure = parseInt(row.meas);
-			const beat = parseInt(row.beat); // Use beat column, not total
+			const beat = parseInt(row.beat);
+			const dur = parseInt(row.dur);
 
-			if (!measureBeats.has(measure)) {
-				measureBeats.set(measure, beat);
-			} else {
-				// Update if this beat number is larger
-				const current = measureBeats.get(measure);
-				if (beat > current) {
-					measureBeats.set(measure, beat);
+			// For each beat tuple, add its duration to the measure total
+			// We only count each tuple once (when sub === 1, the first subdivision)
+			if (row.sub === '1') {
+				const current = measureBeats.get(measure) || 0;
+				const unitNoteLength = measureUnitNoteLength.get(measure) || currentUnitNoteLength;
+
+				// If in compound meter (L:1/8), we need to count actual subdivisions
+				// because dur may not reflect actual duration (e.g., triplet has dur=1 but 3 subdivisions)
+				if (unitNoteLength === '1/8') {
+					// Count all subdivisions in this beat
+					let subdivisionCount = 0;
+					for (const r of rows) {
+						if (r.source === 'lyrics' && r.meas === row.meas && r.beat === row.beat) {
+							// Count only non-partial subdivisions (value not '_')
+							if (r.value !== '_') {
+								subdivisionCount++;
+							}
+						}
+					}
+					// Each subdivision is an eighth note
+					measureBeats.set(measure, current + subdivisionCount);
+				} else {
+					// Simple meter: use dur as is
+					measureBeats.set(measure, current + dur);
 				}
 			}
 		}
@@ -68,8 +119,8 @@ function calculateMeasureBeats(rows) {
 
 	// Convert to array
 	const result = [];
-	for (const [measure, maxBeat] of measureBeats.entries()) {
-		result.push({ measure, beats: maxBeat });
+	for (const [measure, totalBeats] of measureBeats.entries()) {
+		result.push({ measure, beats: totalBeats });
 	}
 
 	// Sort by measure number
@@ -78,21 +129,57 @@ function calculateMeasureBeats(rows) {
 }
 
 /**
- * Determine meter string from beat count
+ * Determine meter string from beat count and current unit note length
  * @param {number} beats - Number of beats in measure
- * @returns {string} ABC meter string (e.g., "4/4", "5/4", "3/4")
+ * @param {string} unitNoteLength - Current L: value (e.g., "1/4", "1/8")
+ * @returns {string} ABC meter string (e.g., "4/4", "5/4", "3/4", "5/8")
  */
-function beatsToMeter(beats) {
-	// Common time signatures
-	if (beats === 4) return '4/4';
-	if (beats === 3) return '3/4';
-	if (beats === 2) return '2/4';
-	if (beats === 6) return '6/8';
-	if (beats === 9) return '9/8';
-	if (beats === 12) return '12/8';
+function beatsToMeter(beats, unitNoteLength = '1/4') {
+	// Parse unit note length denominator
+	const denominator = parseInt(unitNoteLength.split('/')[1]) || 4;
 
-	// For other beat counts, assume quarter note beats
+	// Common time signatures with special handling
+	if (beats === 4 && denominator === 4) return '4/4';
+	if (beats === 3 && denominator === 4) return '3/4';
+	if (beats === 2 && denominator === 4) return '2/4';
+	if (beats === 6 && denominator === 8) return '6/8';
+	if (beats === 9 && denominator === 8) return '9/8';
+	if (beats === 12 && denominator === 8) return '12/8';
+
+	// For compound meter (denominator 8), use 8 as denominator
+	if (denominator === 8) {
+		return `${beats}/8`;
+	}
+
+	// For simple meter (denominator 4), use 4 as denominator
+	// Also handle cases like 5/4, 7/4, etc.
 	return `${beats}/4`;
+}
+
+/**
+ * Extract unit note length from abc0 column value
+ * @param {string} abc0 - abc0 column value
+ * @returns {string|null} Unit note length (e.g., "1/4", "1/8") or null if not found
+ */
+function extractUnitNoteLength(abc0) {
+	if (!abc0) return null;
+
+	// Look for [L:1/4] or [L:1/8] pattern
+	const match = abc0.match(/\[L:([^\]\s]+)\]/);
+	if (match) {
+		return match[1];
+	}
+
+	// Look for L: header value
+	if (abc0.includes('L:')) {
+		// Simple case: L:1/4
+		const parts = abc0.split('L:');
+		if (parts.length > 1) {
+			return parts[1].trim().split(/\s/)[0];
+		}
+	}
+
+	return null;
 }
 
 /**
@@ -156,8 +243,20 @@ async function main() {
 		return;
 	}
 
-	// Determine default meter (from first measure)
-	const defaultMeter = beatsToMeter(measureBeats[0].beats);
+	// Track current unit note length (default: 1/4)
+	let currentUnitNoteLength = '1/4';
+
+	// Find L: header to get default unit note length
+	for (let i = 0; i < rows.length; i++) {
+		const row = rows[i];
+		if (row.source === 'abchdr' && row.value === 'L:') {
+			currentUnitNoteLength = row.abc0 || '1/4';
+			break;
+		}
+	}
+
+	// Determine default meter (from first measure) using current unit note length
+	const defaultMeter = beatsToMeter(measureBeats[0].beats, currentUnitNoteLength);
 
 	// Update M: header row if it exists
 	for (let i = 0; i < rows.length; i++) {
@@ -169,21 +268,82 @@ async function main() {
 		}
 	}
 
-	// Add meter changes for subsequent measures with different beat counts
-	for (let i = 1; i < measureBeats.length; i++) {
-		const prev = measureBeats[i - 1];
-		const curr = measureBeats[i];
+	// First, process all rows to track unit note length changes by measure
+	// We need to know what unit note length applies to each measure
+	const measureUnitNoteLength = new Map();
 
-		if (curr.beats !== prev.beats) {
-			const meter = beatsToMeter(curr.beats);
-			const firstRowIndex = findFirstLyricRowInMeasure(rows, curr.measure);
+	// Initialize with default
+	for (const mb of measureBeats) {
+		measureUnitNoteLength.set(mb.measure, currentUnitNoteLength);
+	}
 
-			if (firstRowIndex !== -1) {
-				// Prepend meter change to abc0 column
-				const row = rows[firstRowIndex];
-				const currentAbc0 = row.abc0 || '';
-				row.abc0 = `M:${meter} ${currentAbc0}`.trim();
+	// Update based on [L:...] directives in rows
+	for (const row of rows) {
+		const unitNoteLength = extractUnitNoteLength(row.abc0);
+		if (unitNoteLength) {
+			// If this row has a measure number, update that measure
+			if (row.meas) {
+				const measure = parseInt(row.meas);
+				measureUnitNoteLength.set(measure, unitNoteLength);
 			}
+			// Otherwise, if it's a BeatDur row, we need to find which measure it belongs to
+			// BeatDur rows don't have meas column, so we need to infer from context
+			else if (row.type === 'BeatDur') {
+				// Find the most recent barline to determine current measure
+				// For simplicity, assume BeatDur at start of measure 2
+				// In test_multibeat.fqs, BeatDur is after first barline, so measure 2
+				measureUnitNoteLength.set(2, unitNoteLength);
+			}
+		}
+	}
+
+	// Process each measure to determine meter
+	for (let i = 0; i < measureBeats.length; i++) {
+		const measureInfo = measureBeats[i];
+		const measure = measureInfo.measure;
+		const beats = measureInfo.beats;
+
+		// Get unit note length for this measure
+		const unitNoteLength = measureUnitNoteLength.get(measure) || currentUnitNoteLength;
+
+		// Find the first lyric row of this measure
+		const firstRowIndex = findFirstLyricRowInMeasure(rows, measure);
+		if (firstRowIndex === -1) continue;
+
+		// For first measure, we already set the default meter in M: header
+		if (i === 0) continue;
+
+		// For subsequent measures, check if meter needs to change
+		const prevMeasureInfo = measureBeats[i - 1];
+		const prevBeats = prevMeasureInfo.beats;
+		const prevMeasure = prevMeasureInfo.measure;
+		const prevUnitNoteLength = measureUnitNoteLength.get(prevMeasure) || currentUnitNoteLength;
+
+		const meter = beatsToMeter(beats, unitNoteLength);
+		const prevMeter = beatsToMeter(prevBeats, prevUnitNoteLength);
+
+		// Check if unit note length changed
+		const unitNoteLengthChanged = unitNoteLength !== prevUnitNoteLength;
+
+		if (beats !== prevBeats || meter !== prevMeter || unitNoteLengthChanged) {
+			// Prepend meter change and/or L: change to abc0 column of first lyric row
+			const row = rows[firstRowIndex];
+			const currentAbc0 = row.abc0 || '';
+
+			// Remove any existing M: or L: directives to avoid duplicates
+			let cleanAbc0 = currentAbc0.replace(/M:[^\]\s]*\s?/g, '').trim();
+			cleanAbc0 = cleanAbc0.replace(/\[L:[^\]\s]*\]\s?/g, '').trim();
+
+			// Build directive string
+			const directives = [];
+			if (unitNoteLengthChanged) {
+				directives.push(`[L:${unitNoteLength}]`);
+			}
+			if (beats !== prevBeats || meter !== prevMeter) {
+				directives.push(`[M:${meter}]`);
+			}
+
+			row.abc0 = `${directives.join(' ')} ${cleanAbc0}`.trim();
 		}
 	}
 

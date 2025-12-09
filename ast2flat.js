@@ -176,6 +176,9 @@ function flattenPitches(blockIdx, block, rows) {
 		} else if (elem.type === 'KeySignature') {
 			type = 'KeySig';
 			value = `K${elem.accidental || ''}${elem.count}`;
+		} else if (elem.type === 'BeatDuration') {
+			type = 'BeatDur';
+			value = `B${elem.duration}${elem.dotted ? '.' : ''}`;
 		} else {
 			type = 'Unknown';
 			value = '';

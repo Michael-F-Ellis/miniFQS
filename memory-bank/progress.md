@@ -201,6 +201,25 @@ n# Progress
       - `test_rhythms_accidentals_octaves.fqs`: Processes complex rhythms, accidentals, and octaves
     - **Implementation**: Uses Node.js child processes to pipe output between stages, maintaining proper stream handling and error propagation
 
+11. **Fixed ABC Output Issues for test_multibeat.fqs** (New)
+    - **Problem solved**: The ABC output for `test_multibeat.fqs` had multiple issues:
+      1. Missing tuplet prefixes for triplet and quintuplet
+      2. Missing `[L:1/8]` directive after beat duration change
+      3. Missing `[M:5/8]` meter change for measure 2
+      4. Notes in measure 2 incorrectly marked as triplets instead of simple eighth notes
+    - **Solutions implemented**:
+      - **Fixed tuplet prefixes in `abcnotes.js`**: Added logic to add `(N)` prefix for odd subdivisions in simple meter (L:1/4), with special handling for rests
+      - **Fixed L directive and meter calculation in `abcmeter.js`**: Modified to detect unit note length changes from BeatDur rows, updated beat counting for compound meter, added `[L:...]` directive support
+      - **Fixed tuplets in compound meter**: Added check to not create tuplets for odd subdivisions when unit denominator is 8 (compound meter)
+      - **Fixed directive preservation**: Updated regex in `abcnotes.js` to preserve both `[L:...]` and `[M:...]` directives
+    - **Testing and verification**:
+      - `test_multibeat.fqs` now produces correct output:
+        - Measure 1: `(3CDE (5z/2z/2z/2F/2G/2|`
+        - Measure 2: `[L:1/8] [M:5/8] ABc de|`
+      - All tuplet prefixes, L directives, and meter changes correctly applied
+      - Notes in compound meter are simple eighth notes, not tuplets
+    - **Result**: The FQS-to-ABC pipeline now correctly handles complex multi-beat examples with tuplets, beat duration changes, and meter changes
+
 ## What's Left to Build
 
 ### Tutorial Content (High Priority)

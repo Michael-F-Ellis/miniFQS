@@ -1,0 +1,229 @@
+#!/usr/bin/env node
+
+/**
+ * abcbeat.js - Pipeline stage for processing beat duration and setting L: (unit note length)
+ * 
+ * Reads TSV from stdin, processes BeatDur elements, and updates abc0 column with L: directives.
+ * Must be placed after abcprep.js and before abcmeter.js.
+ * 
+ * Input: TSV from abcprep.js (with abc0 column)
+ * Output: TSV with abc0 column updated with L: headers based on beat duration
+ */
+
+import { createInterface } from 'readline';
+
+// -----------------------------------------------------------------------------
+// Helper Functions
+// -----------------------------------------------------------------------------
+
+/**
+ * Parse a TSV line into an object with column names from header
+ * @param {string} line - TSV line
+ * @param {Array<string>} headers - Column headers
+ * @returns {Object} Row object with column values
+ */
+function parseTSVLine(line, headers) {
+	const values = line.split('\t');
+	const row = {};
+	headers.forEach((header, i) => {
+		row[header] = values[i] || '';
+	});
+	return row;
+}
+
+/**
+ * Convert a row object back to TSV line
+ * @param {Object} row - Row object
+ * @param {Array<string>} headers - Column headers
+ * @returns {string} TSV line
+ */
+function toTSVLine(row, headers) {
+	return headers.map(header => row[header] || '').join('\t');
+}
+
+/**
+ * Map beat duration to ABC L: (unit note length) value
+ * @param {number} duration - Beat duration (1, 2, 4, 8, etc.)
+ * @param {boolean} dotted - Whether the beat is dotted
+ * @returns {string} ABC L: value (e.g., "1/4", "1/8", etc.)
+ */
+function beatDurationToL(duration, dotted) {
+	// Default: quarter note (B4)
+	if (duration === 4 && !dotted) return '1/4';
+
+	// Handle dotted durations
+	if (dotted) {
+		switch (duration) {
+			case 1: return '1/2';  // B1. (dotted whole = 3 halves)
+			case 2: return '1/4';  // B2. (dotted half = 3 quarters)
+			case 4: return '1/8';  // B4. (dotted quarter = 3 eighths)
+			case 8: return '1/16'; // B8. (dotted eighth = 3 sixteenths)
+			default: return '1/4'; // fallback
+		}
+	}
+
+	// Handle non-dotted durations
+	switch (duration) {
+		case 1: return '1/1';  // B1 (whole note)
+		case 2: return '1/2';  // B2 (half note)
+		case 4: return '1/4';  // B4 (quarter note)
+		case 8: return '1/8';  // B8 (eighth note)
+		default: return '1/4'; // fallback to quarter note
+	}
+}
+
+/**
+ * Parse beat duration from value string (e.g., "B4", "B4.", "B2", "B8.")
+ * @param {string} value - Beat duration value string
+ * @returns {Object|null} Object with duration and dotted properties, or null if invalid
+ */
+function parseBeatDuration(value) {
+	if (!value.startsWith('B')) return null;
+
+	const match = value.match(/^B(\d+)(\.)?$/);
+	if (!match) return null;
+
+	const duration = parseInt(match[1]);
+	const dotted = match[2] === '.';
+
+	return { duration, dotted };
+}
+
+// -----------------------------------------------------------------------------
+// Main Processing
+// -----------------------------------------------------------------------------
+
+async function main() {
+	const rl = createInterface({
+		input: process.stdin,
+		output: process.stdout,
+		terminal: false
+	});
+
+	let headers = [];
+	let rows = [];
+	let lineNumber = 0;
+
+	// Read all lines
+	for await (const line of rl) {
+		if (lineNumber === 0) {
+			// First line is header
+			headers = line.split('\t');
+			// Ensure abc0 column exists (added by abcprep.js)
+			if (!headers.includes('abc0')) {
+				headers.push('abc0');
+			}
+		} else {
+			// Parse data row
+			const row = parseTSVLine(line, headers);
+			rows.push(row);
+		}
+		lineNumber++;
+	}
+
+	// Track current beat duration (default: B4 - quarter note)
+	let currentBeatDuration = { duration: 4, dotted: false };
+	let currentL = beatDurationToL(4, false); // Default L:1/4
+
+	// Track if we've set the default L: header
+	let defaultLSet = false;
+
+	// Track current measure for BeatDur placement
+	let currentMeasure = 1;
+	let lastBarlineIndex = -1;
+
+	// Process rows to update L: headers based on beat duration
+	for (let i = 0; i < rows.length; i++) {
+		const row = rows[i];
+
+		// Track measure changes via barlines
+		if (row.source === 'lyrics' && row.type === 'Barline') {
+			// Barline indicates end of current measure
+			// Next lyric row will be in next measure
+			lastBarlineIndex = i;
+		}
+
+		// Handle BeatDur elements
+		if (row.type === 'BeatDur') {
+			const beatInfo = parseBeatDuration(row.value);
+			if (beatInfo) {
+				currentBeatDuration = beatInfo;
+				currentL = beatDurationToL(beatInfo.duration, beatInfo.dotted);
+
+				// Update the BeatDur row's abc0 column to include L: directive
+				row.abc0 = `[L:${currentL}]`;
+
+				// Also add [L:...] to the first lyric row of the current measure
+				// Find the next lyric row after the last barline (or start of piece)
+				// that has a beat (i.e., not a barline)
+				let targetRowIndex = -1;
+				for (let j = Math.max(lastBarlineIndex + 1, 0); j < rows.length; j++) {
+					const candidate = rows[j];
+					if (candidate.source === 'lyrics' && candidate.meas && candidate.beat) {
+						targetRowIndex = j;
+						break;
+					}
+				}
+
+				if (targetRowIndex !== -1) {
+					const targetRow = rows[targetRowIndex];
+					// Prepend [L:...] to existing abc0 content
+					const currentAbc0 = targetRow.abc0 || '';
+					targetRow.abc0 = `[L:${currentL}] ${currentAbc0}`.trim();
+				}
+			}
+		}
+
+		// Handle ABC header rows (source='abchdr')
+		if (row.source === 'abchdr' && row.value === 'L:') {
+			// Update the L: header with current beat duration
+			row.abc0 = currentL;
+			defaultLSet = true;
+		}
+	}
+
+	// If no L: header was found (shouldn't happen with abcprep.js), add one
+	if (!defaultLSet) {
+		// Find the L: header row or create one
+		let foundLHeader = false;
+		for (let i = 0; i < rows.length; i++) {
+			const row = rows[i];
+			if (row.source === 'abchdr' && row.value === 'L:') {
+				row.abc0 = currentL;
+				foundLHeader = true;
+				break;
+			}
+		}
+
+		// If no L: header exists, add one (shouldn't happen with abcprep.js)
+		if (!foundLHeader) {
+			rows.unshift({
+				source: 'abchdr',
+				block: '',
+				meas: '',
+				beat: '',
+				sub: '',
+				total: '',
+				type: 'ABCHeader',
+				value: 'L:',
+				dur: '',
+				mod: '',
+				pitch_idx: '',
+				pitch_note: '',
+				pitch_acc: '',
+				pitch_oct: '',
+				abc0: currentL
+			});
+		}
+	}
+
+	// Output updated TSV
+	console.log(headers.join('\t'));
+	rows.forEach(row => console.log(toTSVLine(row, headers)));
+}
+
+// Handle errors
+main().catch(err => {
+	console.error('Error in abcbeat.js:', err.message);
+	process.exit(1);
+});

@@ -164,10 +164,22 @@ KeySignature
     / count:[1-7] sig:[#&] { return { type: "KeySignature", accidental: sig, count: parseInt(count) }; }
     )
     { return data; } // <--- 2. Return ONLY 'data', discarding the "K"
+
+// A beat duration specification, e.g. B4 (quarter note beat), B4. (dotted quarter)
+BeatDuration
+  = "B" duration:Integer dot:"."?
+    {
+      return {
+        type: "BeatDuration",
+        duration: duration,
+        dotted: dot ? true : false
+      };
+    }
     
 PitchElement
   = _ bar:Barline _ { return bar; }
   / _ key:KeySignature _ { return key; } // Support mid-line key changes
+  / _ beat:BeatDuration _ { return beat; } // Beat duration specification
   / _ pitch:Pitch _ { return pitch; }
 
 // A pitch is one of 'abcdefg' optionally preceded by one or two accidentals

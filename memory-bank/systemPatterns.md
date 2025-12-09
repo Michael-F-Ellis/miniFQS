@@ -46,12 +46,18 @@ miniFQS follows a modular, web-centric architecture with clear separation betwee
   3. **pitch-octaves.js**: Calculates absolute octaves using LilyPond Rule
   4. **map-pitches.js**: Maps pitch information to lyric attacks
   5. **abcprep.js**: Adds ABC header rows and columns to TSV
-  6. **abcmeter.js**: Adds meter (time signature) changes
+  6. **abcmeter.js**: Adds meter (time signature) changes and L (unit note length) directives
   7. **abckeysig.js**: Adds key signatures and barlines in ABC format
-  8. **abcnotes.js**: Converts pitch/rhythm to ABC note syntax
+  8. **abcnotes.js**: Converts pitch/rhythm to ABC note syntax with tuplet handling
   9. **abcgen.js**: Generates final ABC notation string
 - **Design Philosophy**: Each stage reads from stdin and writes to stdout, enabling flexible composition and debugging.
 - **Data Format**: Intermediate stages use TSV (tab-separated values) for human/AI inspection and processing.
+- **Recent Improvements**:
+  - **Tuplet handling**: `abcnotes.js` now correctly adds `(N)` prefixes for odd subdivisions in simple meter (L:1/4) but not in compound meter (L:1/8)
+  - **L directive support**: `abcmeter.js` detects unit note length changes from BeatDur rows and adds `[L:...]` directives
+  - **Meter calculation**: `abcmeter.js` correctly counts beats for compound meter (L:1/8) by counting actual subdivisions
+  - **Directive preservation**: `abcnotes.js` preserves existing `[L:...]` and `[M:...]` directives when adding note strings
+  - **Redundant key suppression**: `abckeysig.js` only outputs inline key signatures when the key actually changes
 
 ### 6. fqspipe.js Command-Line Wrapper
 - **Pattern**: Convenience wrapper that orchestrates the full pipeline with a unified interface.

@@ -67,6 +67,9 @@ Create additional files/folders within memory-bank/ when they help organize:
 - Testing strategies
 - Deployment procedures
 
+## Interacting with the user.
+I understand that the user is a human software developer.  Their prompts may contain typos or be ambiguous. I will endeavor to be a skilled listener and collaborator by paraphrasing their prompts and asking clarifying questions to ensure I understand their intent and communicate that understanding to them.
+
 ## Core Workflows
 
 ### Plan Mode

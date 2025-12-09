@@ -15,6 +15,7 @@ const PIPELINE_STAGES = [
 	{ name: 'octaves', script: 'pitch-octaves.js', output: 'tsv', description: 'Calculate absolute octaves using LilyPond Rule' },
 	{ name: 'map', script: 'map-pitches.js', output: 'tsv', description: 'Map pitch information to lyric attacks' },
 	{ name: 'prep', script: 'abcprep.js', output: 'tsv', description: 'Add ABC header rows and columns' },
+	{ name: 'beat', script: 'abcbeat.js', output: 'tsv', description: 'Process beat duration and set L: (unit note length)' },
 	{ name: 'meter', script: 'abcmeter.js', output: 'tsv', description: 'Add meter (time signature) changes' },
 	{ name: 'keysig', script: 'abckeysig.js', output: 'tsv', description: 'Add key signatures and barlines in ABC format' },
 	{ name: 'notes', script: 'abcnotes.js', output: 'tsv', description: 'Convert pitch/rhythm to ABC note syntax' },
