@@ -185,6 +185,12 @@ function processBeatGroup(beatRows, currentUnitNoteLength) {
 	}
 
 	// Calculate duration denominator for this beat
+	// Get beat duration from dur column (default to 1 if not present)
+	let beatDuration = 1;
+	if (beatRows[0].dur && beatRows[0].dur !== '') {
+		beatDuration = parseInt(beatRows[0].dur);
+	}
+
 	// With L:1/4, a beat of duration 1 (quarter) with N subdivisions:
 	// - Each subdivision gets duration denominator = N
 	// With L:1/8, a beat of duration 1 (eighth) with N subdivisions:
@@ -194,6 +200,39 @@ function processBeatGroup(beatRows, currentUnitNoteLength) {
 		durationDenom = N;
 	} else {
 		durationDenom = largestPowerOfTwoLessThan(N);
+	}
+
+	// Adjust for beat duration
+	// If beatDuration > 1 (multi-beat tuple), we need longer notes
+	// Example: 2-beat triplet (dur=2, N=3) should use quarter notes (denom=1) not eighth notes (denom=2)
+	// The total duration is beatDuration quarters, divided among N notes
+	// Each note gets beatDuration/N quarters
+	// We need to find a power-of-two note value that fits into beatDuration/N
+	// But actually, for tuplets, ABC uses the note value that would be used if N were a power of two
+	// and then the tuplet modifier (N) adjusts the timing
+	// For a 2-beat triplet: we want (3CDE (quarter notes in time of 2 quarters)
+	// So we should use quarter notes (denom=1) not eighth notes (denom=2)
+	// The rule: use the note value that corresponds to beatDuration (not beatDuration/N)
+	// For beatDuration=2 (half note), the power-of-two note value is 2 (half note) or 1 (quarter note)
+	// We should use 1 (quarter note) because we're dividing into 3 parts
+	if (beatDuration > 1) {
+		// Find the power-of-two note value for the total beat duration
+		// beatDuration is in quarters, e.g., 2 = half note, 4 = whole note, 1 = quarter note
+		// We want the denominator that gives this duration: denominator = 1/beatDuration
+		// But actually, we want the note value, not the denominator
+		// For beatDuration=2 (half note), note value is 2 (C/2 is eighth note, wait no)
+		// Actually, with L:1/4:
+		// - Whole note (4 quarters): C/1 or just C? Actually C/1
+		// - Half note (2 quarters): C/2
+		// - Quarter note (1 quarter): C
+		// - Eighth note (0.5 quarters): C/2 (same as half note? No, C/2 is eighth note)
+		// I'm confused. Let's think differently.
+		// For a 2-beat triplet, we want quarter notes (C).
+		// So durationDenom should be 1, not 2.
+		// The current durationDenom is 2 (because N=3, largestPowerOfTwoLessThan(3)=2)
+		// We need to divide by beatDuration: durationDenom = durationDenom / beatDuration
+		// But ensure it's at least 1
+		durationDenom = Math.max(1, durationDenom / beatDuration);
 	}
 
 	// Adjust for unit note length

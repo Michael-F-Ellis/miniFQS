@@ -66,12 +66,23 @@ MusicBlock
 // 2. Lyric Line
 // =============================================================================
 
+// A beat duration directive in lyric lines, e.g. [4.] (dotted quarter), [4] (quarter)
+BeatDurationDirective
+  = "[" duration:Integer dot:"."? "]"
+    {
+      return {
+        type: "BeatDuration",
+        duration: duration,
+        dotted: dot ? true : false
+      };
+    }
+
 // The lyric line is the first line of every music block. It contains the lyric
 // a line of music annotated with special characters that define the intended 
 // mensuraton and rhythm.
 // UPDATED: LyricLine must end with a Barline
 LyricLine
-  = items:(_ m:Barline _ { return m; } / _ t:BeatTuple _ { return t; })+
+  = items:(_ m:Barline _ { return m; } / _ t:BeatTuple _ { return t; } / _ d:BeatDurationDirective _ { return d; })+
     & { return items.length > 0 && items[items.length - 1].type === "Barline"; } 
     { return items; }
 
@@ -128,8 +139,9 @@ BeatTail
 // This should be re-written to support unicode alpha chars.
 // We'll need to make sure to include a single quote or apostrophe
 // to allow English possessives, plurals and contractions.
+// Exclude '[' and ']' to allow beat duration directives.
 TextSegment
-  = chars:[^ \t\n\r.|*_;\-=0-9]+ 
+  = chars:[^ \t\n\r.|*_;\-=\[\]0-9]+ 
     { return { type: "Syllable", value: chars.join("") }; }
 
 // Exactly one of: asterisk, underscore, semicolon, equal or hyphen.
@@ -165,21 +177,9 @@ KeySignature
     )
     { return data; } // <--- 2. Return ONLY 'data', discarding the "K"
 
-// A beat duration specification, e.g. B4 (quarter note beat), B4. (dotted quarter)
-BeatDuration
-  = "B" duration:Integer dot:"."?
-    {
-      return {
-        type: "BeatDuration",
-        duration: duration,
-        dotted: dot ? true : false
-      };
-    }
-    
 PitchElement
   = _ bar:Barline _ { return bar; }
   / _ key:KeySignature _ { return key; } // Support mid-line key changes
-  / _ beat:BeatDuration _ { return beat; } // Beat duration specification
   / _ pitch:Pitch _ { return pitch; }
 
 // A pitch is one of 'abcdefg' optionally preceded by one or two accidentals

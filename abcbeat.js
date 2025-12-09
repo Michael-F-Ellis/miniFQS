@@ -73,20 +73,24 @@ function beatDurationToL(duration, dotted) {
 }
 
 /**
- * Parse beat duration from value string (e.g., "B4", "B4.", "B2", "B8.")
+ * Parse beat duration from value string (e.g., "[4]", "[4.]")
  * @param {string} value - Beat duration value string
  * @returns {Object|null} Object with duration and dotted properties, or null if invalid
  */
 function parseBeatDuration(value) {
-	if (!value.startsWith('B')) return null;
+	// Handle syntax: [4], [4.]
+	if (value.startsWith('[') && value.endsWith(']')) {
+		const inner = value.slice(1, -1); // Remove brackets
+		const match = inner.match(/^(\d+)(\.)?$/);
+		if (!match) return null;
 
-	const match = value.match(/^B(\d+)(\.)?$/);
-	if (!match) return null;
+		const duration = parseInt(match[1]);
+		const dotted = match[2] === '.';
 
-	const duration = parseInt(match[1]);
-	const dotted = match[2] === '.';
+		return { duration, dotted };
+	}
 
-	return { duration, dotted };
+	return null;
 }
 
 // -----------------------------------------------------------------------------
@@ -150,10 +154,7 @@ async function main() {
 				currentBeatDuration = beatInfo;
 				currentL = beatDurationToL(beatInfo.duration, beatInfo.dotted);
 
-				// Update the BeatDur row's abc0 column to include L: directive
-				row.abc0 = `[L:${currentL}]`;
-
-				// Also add [L:...] to the first lyric row of the current measure
+				// Add [L:...] to the first lyric row of the current measure
 				// Find the next lyric row after the last barline (or start of piece)
 				// that has a beat (i.e., not a barline)
 				let targetRowIndex = -1;
@@ -171,6 +172,7 @@ async function main() {
 					const currentAbc0 = targetRow.abc0 || '';
 					targetRow.abc0 = `[L:${currentL}] ${currentAbc0}`.trim();
 				}
+				// Don't set abc0 on the BeatDur row itself
 			}
 		}
 

@@ -183,7 +183,7 @@ function extractUnitNoteLength(abc0) {
 }
 
 /**
- * Find the first lyric row of a measure
+ * Find the first lyric row of a measure (excluding BeatDur and Barline rows)
  * @param {Array<Object>} rows - All TSV rows
  * @param {number} measure - Measure number
  * @returns {number} Index of first lyric row in the measure, or -1 if not found
@@ -192,6 +192,14 @@ function findFirstLyricRowInMeasure(rows, measure) {
 	for (let i = 0; i < rows.length; i++) {
 		const row = rows[i];
 		if (row.source === 'lyrics' && row.meas && parseInt(row.meas) === measure) {
+			// Skip BeatDur and Barline rows - they don't have beat values
+			if (row.type === 'BeatDur' || row.type === 'Barline') {
+				continue;
+			}
+			// Also skip rows without beat value (should catch other non-note rows)
+			if (!row.beat) {
+				continue;
+			}
 			return i;
 		}
 	}

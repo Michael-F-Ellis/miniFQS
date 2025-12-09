@@ -287,6 +287,42 @@ The primary focus is on **tutorial development and user education**. The core mi
   - Notes in compound meter are simple eighth notes, not tuplets
 - **Result**: The FQS-to-ABC pipeline now correctly handles complex multi-beat examples with tuplets, beat duration changes, and meter changes.
 
+### 24. Moved Beat Duration from Pitch Lines to Lyric Lines and Removed Obsolete B Syntax (New)
+- **Problem identified**: Beat duration specification using `B` notation in pitch lines created complexity in the pipeline and potential ambiguity with lyric syllables.
+- **Solution**: Changed beat duration syntax from `B4.` in pitch lines to `[4.]` in lyric lines, keeping all rhythm information together, then removed obsolete `B` syntax entirely.
+- **Implementation details**:
+  1. **Updated grammar (`fqs.pegjs`)**:
+     - Added `BeatDurationDirective` rule for `[4.]` or `[4]` syntax in lyric lines
+     - Excluded `[` and `]` from `TextSegment` characters to avoid parsing conflicts
+     - Updated `LyricLine` rule to include `BeatDurationDirective` alongside `Barline` and `BeatTuple`
+     - **Removed obsolete `BeatDuration` rule** that handled `B4.` syntax in pitch lines
+     - **Removed `BeatDuration` from `PitchElement` alternatives**
+  2. **Updated `ast2flat.js`**:
+     - Modified `flattenLyrics` to handle `BeatDuration` items from lyric directives
+     - Outputs `BeatDur` rows with value `[4.]` or `[4]` (instead of `B4.`)
+  3. **Updated `abcbeat.js`**:
+     - Modified `parseBeatDuration` to **only handle `[4.]` syntax** (removed support for obsolete `B4.` syntax)
+     - Changed logic to not set `abc0` on BeatDur rows themselves, only on first lyric row of the measure
+  4. **Updated `abcmeter.js`**:
+     - Modified `findFirstLyricRowInMeasure` to skip BeatDur and Barline rows when finding first lyric row for directive placement
+     - Prevents duplicate `[L:...]` directives by not adding them to BeatDur rows
+  5. **Cleaned up obsolete files**:
+     - **Deleted `test_multibeat_obsolete.fqs`** (replaced by updated `test_multibeat.fqs` with new syntax)
+- **Testing and verification**:
+  - `test_multibeat.fqs` uses new syntax: `[4.] *** **_ | [4] 2*** 2;;;** |`
+  - Pipeline produces correct output with no duplicate L directives:
+    - Measure 1: `(3CDE (5z/2z/2z/2F/2G/2|`
+    - Measure 2: `[L:1/8] [M:5/8] ABc de|`
+    - Measure 3: `[L:1/4] [M:4/4] (3cde (5z/2z/2z/2f/2g/2|`
+  - **Backward compatibility removed**: Old `B4.` syntax no longer supported (clean break)
+- **Benefits**:
+  - Simpler pipeline: All rhythm information (beat duration, subdivisions, rests) now in lyric lines
+  - Clearer separation: Pitch lines contain only pitch information
+  - Less ambiguity: `[4.]` clearly distinct from lyric syllables
+  - Consistency: Similar to ABC's use of brackets for inline directives
+  - **Clean codebase**: No obsolete syntax support to maintain
+- **Result**: Beat duration specification is now cleaner, more intuitive, and simplifies the FQS-to-ABC conversion pipeline. The obsolete `B` syntax has been completely removed from the grammar and pipeline.
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy

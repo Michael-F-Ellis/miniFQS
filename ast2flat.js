@@ -82,6 +82,28 @@ function flattenLyrics(blockIdx, block, rows) {
 			beatInMeasure = 1;
 			// totalBeats remains unchanged (barline doesn't add beats)
 		}
+		else if (item.type === 'BeatDuration') {
+			// Output a beat duration row (from lyric line directive [4.] or [4])
+			const value = `[${item.duration}${item.dotted ? '.' : ''}]`;
+			rows.push([
+				'lyrics',            // source
+				blockIdx,            // block
+				measure,             // meas (current measure)
+				'',                  // beat
+				'',                  // sub
+				0,                   // total
+				'BeatDur',           // type
+				value,               // value (e.g., [4.], [4])
+				'',                  // dur
+				'',                  // mod
+				'',                  // pitch_idx
+				'',                  // pitch_note
+				'',                  // pitch_acc
+				'',                  // pitch_oct
+				debug ? JSON.stringify(item) : '' // raw
+			]);
+			// Beat duration directive doesn't affect beat counting
+		}
 		else if (item.type === 'BeatTuple') {
 			const dur = item.duration;
 			const subdivisions = item.content.length;
