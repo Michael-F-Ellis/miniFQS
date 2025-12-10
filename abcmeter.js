@@ -44,14 +44,14 @@ function toTSVLine(row, headers) {
 /**
  * Calculate beats per measure from TSV rows
  * @param {Array<Object>} rows - All TSV rows
- * @returns {Array<{measure: number, beats: number}>} Array of measure beat counts
+ * @returns {Array<{block: number, measure: number, beats: number}>} Array of measure beat counts
  */
 function calculateMeasureBeats(rows) {
-	const measureBeats = new Map(); // measure -> total beats
+	const measureBeats = new Map(); // "block-measure" -> total beats
 
 	// First, get unit note length for each measure
 	// We need to know if we're in compound meter (L:1/8)
-	const measureUnitNoteLength = new Map();
+	const measureUnitNoteLength = new Map(); // "block-measure" -> unit note length
 	let currentUnitNoteLength = '1/4';
 
 	// Find default L: header
@@ -67,23 +67,28 @@ function calculateMeasureBeats(rows) {
 		if (row.abc0) {
 			const match = row.abc0.match(/\[L:([^\]\s]+)\]/);
 			if (match) {
-				if (row.meas) {
-					// Lyric row with measure number
+				if (row.meas && row.block) {
+					// Lyric row with measure number and block
+					const block = parseInt(row.block);
 					const measure = parseInt(row.meas);
-					measureUnitNoteLength.set(measure, match[1]);
-				} else if (row.type === 'BeatDur') {
+					const key = `${block}-${measure}`;
+					measureUnitNoteLength.set(key, match[1]);
+				} else if (row.type === 'BeatDur' && row.block) {
 					// BeatDur row - infer measure
 					// Find the most recent barline to determine current measure
 					// For simplicity, assume BeatDur at start of measure 2
 					// In test_multibeat.fqs, BeatDur is after first barline, so measure 2
-					measureUnitNoteLength.set(2, match[1]);
+					const block = parseInt(row.block);
+					const key = `${block}-2`;
+					measureUnitNoteLength.set(key, match[1]);
 				}
 			}
 		}
 	}
 
 	for (const row of rows) {
-		if (row.source === 'lyrics' && row.meas && row.beat && row.dur) {
+		if (row.source === 'lyrics' && row.block && row.meas && row.beat && row.dur) {
+			const block = parseInt(row.block);
 			const measure = parseInt(row.meas);
 			const beat = parseInt(row.beat);
 			const dur = parseInt(row.dur);
@@ -91,8 +96,9 @@ function calculateMeasureBeats(rows) {
 			// For each beat tuple, add its duration to the measure total
 			// We only count each tuple once (when sub === 1, the first subdivision)
 			if (row.sub === '1') {
-				const current = measureBeats.get(measure) || 0;
-				const unitNoteLength = measureUnitNoteLength.get(measure) || currentUnitNoteLength;
+				const key = `${block}-${measure}`;
+				const current = measureBeats.get(key) || 0;
+				const unitNoteLength = measureUnitNoteLength.get(key) || currentUnitNoteLength;
 
 				// If in compound meter (L:1/8), we need to count actual subdivisions
 				// because dur may not reflect actual duration (e.g., triplet has dur=1 but 3 subdivisions)
@@ -100,7 +106,7 @@ function calculateMeasureBeats(rows) {
 					// Count all subdivisions in this beat
 					let subdivisionCount = 0;
 					for (const r of rows) {
-						if (r.source === 'lyrics' && r.meas === row.meas && r.beat === row.beat) {
+						if (r.source === 'lyrics' && r.block === row.block && r.meas === row.meas && r.beat === row.beat) {
 							// Count only non-partial subdivisions (value not '_')
 							if (r.value !== '_') {
 								subdivisionCount++;
@@ -108,10 +114,10 @@ function calculateMeasureBeats(rows) {
 						}
 					}
 					// Each subdivision is an eighth note
-					measureBeats.set(measure, current + subdivisionCount);
+					measureBeats.set(key, current + subdivisionCount);
 				} else {
 					// Simple meter: use dur as is
-					measureBeats.set(measure, current + dur);
+					measureBeats.set(key, current + dur);
 				}
 			}
 		}
@@ -119,12 +125,16 @@ function calculateMeasureBeats(rows) {
 
 	// Convert to array
 	const result = [];
-	for (const [measure, totalBeats] of measureBeats.entries()) {
-		result.push({ measure, beats: totalBeats });
+	for (const [key, totalBeats] of measureBeats.entries()) {
+		const [block, measure] = key.split('-').map(Number);
+		result.push({ block, measure, beats: totalBeats });
 	}
 
-	// Sort by measure number
-	result.sort((a, b) => a.measure - b.measure);
+	// Sort by block, then measure
+	result.sort((a, b) => {
+		if (a.block !== b.block) return a.block - b.block;
+		return a.measure - b.measure;
+	});
 	return result;
 }
 
@@ -185,13 +195,15 @@ function extractUnitNoteLength(abc0) {
 /**
  * Find the first lyric row of a measure (excluding BeatDur and Barline rows)
  * @param {Array<Object>} rows - All TSV rows
+ * @param {number} block - Block number
  * @param {number} measure - Measure number
  * @returns {number} Index of first lyric row in the measure, or -1 if not found
  */
-function findFirstLyricRowInMeasure(rows, measure) {
+function findFirstLyricRowInMeasure(rows, block, measure) {
 	for (let i = 0; i < rows.length; i++) {
 		const row = rows[i];
-		if (row.source === 'lyrics' && row.meas && parseInt(row.meas) === measure) {
+		if (row.source === 'lyrics' && row.block && parseInt(row.block) === block &&
+			row.meas && parseInt(row.meas) === measure) {
 			// Skip BeatDur and Barline rows - they don't have beat values
 			if (row.type === 'BeatDur' || row.type === 'Barline') {
 				continue;
@@ -278,29 +290,33 @@ async function main() {
 
 	// First, process all rows to track unit note length changes by measure
 	// We need to know what unit note length applies to each measure
-	const measureUnitNoteLength = new Map();
+	const measureUnitNoteLength = new Map(); // "block-measure" -> unit note length
 
 	// Initialize with default
 	for (const mb of measureBeats) {
-		measureUnitNoteLength.set(mb.measure, currentUnitNoteLength);
+		const key = `${mb.block}-${mb.measure}`;
+		measureUnitNoteLength.set(key, currentUnitNoteLength);
 	}
 
 	// Update based on [L:...] directives in rows
 	for (const row of rows) {
 		const unitNoteLength = extractUnitNoteLength(row.abc0);
 		if (unitNoteLength) {
-			// If this row has a measure number, update that measure
-			if (row.meas) {
+			// If this row has a measure number and block, update that measure
+			if (row.meas && row.block) {
+				const block = parseInt(row.block);
 				const measure = parseInt(row.meas);
-				measureUnitNoteLength.set(measure, unitNoteLength);
+				const key = `${block}-${measure}`;
+				measureUnitNoteLength.set(key, unitNoteLength);
 			}
-			// Otherwise, if it's a BeatDur row, we need to find which measure it belongs to
-			// BeatDur rows don't have meas column, so we need to infer from context
-			else if (row.type === 'BeatDur') {
+			// Otherwise, if it's a BeatDur row with block, infer measure
+			else if (row.type === 'BeatDur' && row.block) {
 				// Find the most recent barline to determine current measure
 				// For simplicity, assume BeatDur at start of measure 2
 				// In test_multibeat.fqs, BeatDur is after first barline, so measure 2
-				measureUnitNoteLength.set(2, unitNoteLength);
+				const block = parseInt(row.block);
+				const key = `${block}-2`;
+				measureUnitNoteLength.set(key, unitNoteLength);
 			}
 		}
 	}
@@ -308,24 +324,28 @@ async function main() {
 	// Process each measure to determine meter
 	for (let i = 0; i < measureBeats.length; i++) {
 		const measureInfo = measureBeats[i];
+		const block = measureInfo.block;
 		const measure = measureInfo.measure;
 		const beats = measureInfo.beats;
 
 		// Get unit note length for this measure
-		const unitNoteLength = measureUnitNoteLength.get(measure) || currentUnitNoteLength;
+		const key = `${block}-${measure}`;
+		const unitNoteLength = measureUnitNoteLength.get(key) || currentUnitNoteLength;
 
 		// Find the first lyric row of this measure
-		const firstRowIndex = findFirstLyricRowInMeasure(rows, measure);
+		const firstRowIndex = findFirstLyricRowInMeasure(rows, block, measure);
 		if (firstRowIndex === -1) continue;
 
-		// For first measure, we already set the default meter in M: header
+		// For first measure of first block, we already set the default meter in M: header
 		if (i === 0) continue;
 
 		// For subsequent measures, check if meter needs to change
 		const prevMeasureInfo = measureBeats[i - 1];
-		const prevBeats = prevMeasureInfo.beats;
+		const prevBlock = prevMeasureInfo.block;
 		const prevMeasure = prevMeasureInfo.measure;
-		const prevUnitNoteLength = measureUnitNoteLength.get(prevMeasure) || currentUnitNoteLength;
+		const prevBeats = prevMeasureInfo.beats;
+		const prevKey = `${prevBlock}-${prevMeasure}`;
+		const prevUnitNoteLength = measureUnitNoteLength.get(prevKey) || currentUnitNoteLength;
 
 		const meter = beatsToMeter(beats, unitNoteLength);
 		const prevMeter = beatsToMeter(prevBeats, prevUnitNoteLength);

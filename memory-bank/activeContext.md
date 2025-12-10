@@ -346,6 +346,35 @@ The primary focus is on **tutorial development and user education**. The core mi
   - **Visual alignment**: Each line corresponds to one vocal part/line in the score
 - **Result**: The FQS-to-ABC pipeline now produces ABC notation that mirrors the block structure of the input FQS, improving readability and maintaining the organizational intent of the original score.
 
+### 26. Fixed Meter Calculation Error for Multi-Block FQS Files (New)
+- **Problem identified**: The `abcmeter.js` utility incorrectly calculated meter for multi-block FQS files like `test_largescore.fqs`, producing absurd meter values like `M:100/4` and `[M:3125/8]`.
+- **Root cause**: The `calculateMeasureBeats` function was grouping beats by measure number only, ignoring the `block` column. Since measure numbers restart at 1 for each block, it was summing beats for measure 1 across all 24 blocks, measure 2 across all 24 blocks, etc.
+- **Solution**: Modified `abcmeter.js` to consider both `block` and `meas` columns when calculating beats per measure.
+- **Implementation details**:
+  1. **Updated `calculateMeasureBeats` function**:
+     - Changed from `Map<measure, beats>` to `Map<"block-measure", beats>`
+     - Updated all beat counting logic to use composite keys
+     - Modified unit note length tracking to also use block-measure keys
+  2. **Updated `findFirstLyricRowInMeasure` function**:
+     - Added `block` parameter to find lyric rows within specific blocks
+     - Updated function signature and call sites
+  3. **Updated main processing logic**:
+     - Modified `measureUnitNoteLength` map to use block-measure keys
+     - Updated meter change detection to compare within same block context
+     - Fixed first measure detection to consider block 1, measure 1 as the default
+  4. **Preserved single-block behavior**: Single-block files still work correctly
+- **Testing and verification**:
+  - `test_largescore.fqs` (24 blocks): Now produces correct meters `M:4/4` and `[M:5/8]` instead of `M:100/4` and `[M:3125/8]`
+  - `test_multibeat.fqs` (single block): Still produces correct output `M:4/4`, `[M:5/8]`, `[M:4/4]`
+  - All meter changes and L directives work correctly across blocks
+  - Block boundaries and newlines are preserved
+- **Benefits**:
+  - **Correctness**: Meter calculation now works correctly for multi-block FQS files
+  - **Robustness**: Each block's measures are calculated independently
+  - **Maintainability**: Clearer data structures using composite keys
+  - **Consistency**: Aligns with TSV structure that includes both block and measure columns
+- **Result**: The FQS-to-ABC pipeline now correctly handles meter calculation for both single-block and multi-block FQS files, producing accurate time signatures regardless of score length or block count.
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy
