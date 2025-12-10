@@ -42,10 +42,12 @@ async function main() {
 	// Build headers and music body separately
 	let headersABC = '';
 	let musicBody = '';
-	let inMusicBody = false;
+	let currentBlock = '';
+	let blockContent = '';
 
 	for (const row of rows) {
 		const source = row.source || '';
+		const block = row.block || '1'; // Default to '1' if missing
 
 		// Handle header rows (source='abchdr')
 		if (source === 'abchdr') {
@@ -65,24 +67,41 @@ async function main() {
 			const abc0 = row.abc0 || '';
 			if (abc0.trim() === '') continue;
 
-			// Add the ABC content
-			musicBody += abc0.trim() + ' ';
+			// Check if block changed
+			if (block !== currentBlock) {
+				// If we have accumulated content for previous block, add it to musicBody
+				if (blockContent) {
+					// Clean up the block content
+					let cleaned = blockContent.replace(/\s+/g, ' ').trim();
+					// Remove space before barlines
+					cleaned = cleaned.replace(/\s+\|/g, '|');
+					// Add space after barlines (unless at end of string or followed by another barline)
+					cleaned = cleaned.replace(/\|(?!\||$)/g, '| ');
+					// Remove double spaces
+					cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+					// Add to musicBody with newline
+					musicBody += cleaned + '\n';
+					blockContent = '';
+				}
+				currentBlock = block;
+			}
+
+			// Add the ABC content to blockContent
+			blockContent += abc0.trim() + ' ';
 		}
 		// Skip pitch rows (source='pitches') to avoid duplicate barlines
 		// Other sources are ignored
 	}
 
-	// Post-process music body: clean up spaces
-	musicBody = musicBody.replace(/\s+/g, ' ').trim();
-
-	// Remove space before barlines
-	musicBody = musicBody.replace(/\s+\|/g, '|');
-
-	// Add space after barlines (unless at end of string or followed by another barline)
-	musicBody = musicBody.replace(/\|(?!\||$)/g, '| ');
-
-	// Remove double spaces
-	musicBody = musicBody.replace(/\s+/g, ' ').trim();
+	// Add the last block's content
+	if (blockContent) {
+		let cleaned = blockContent.replace(/\s+/g, ' ').trim();
+		cleaned = cleaned.replace(/\s+\|/g, '|');
+		cleaned = cleaned.replace(/\|(?!\||$)/g, '| ');
+		cleaned = cleaned.replace(/\s+/g, ' ').trim();
+		musicBody += cleaned;
+	}
 
 	// Combine headers and music body
 	const abcNotation = headersABC + musicBody;

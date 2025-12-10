@@ -323,6 +323,29 @@ The primary focus is on **tutorial development and user education**. The core mi
   - **Clean codebase**: No obsolete syntax support to maintain
 - **Result**: Beat duration specification is now cleaner, more intuitive, and simplifies the FQS-to-ABC conversion pipeline. The obsolete `B` syntax has been completely removed from the grammar and pipeline.
 
+### 25. Added Newlines to ABC Output to Match FQS Block Structure (New)
+- **Problem identified**: ABC output was a single continuous line regardless of FQS block structure, making it difficult to read and not matching the original FQS organization.
+- **Solution**: Modified `abcgen.js` to insert newlines at block boundaries, so each FQS block (lyric line + pitch line pair) corresponds to a separate line in the ABC output.
+- **Implementation details**:
+  1. **Updated `abcgen.js`**:
+     - Added tracking of current block using the `block` column from TSV
+     - When block changes, accumulated block content is cleaned and added to music body with newline
+     - Each block's content is cleaned separately (spaces normalized, proper spacing around barlines)
+     - Last block's content added without trailing newline
+  2. **Preserved single-block behavior**: Single-block FQS files still produce single-line ABC output (no extra newlines)
+  3. **Multi-block alignment**: Each FQS block now corresponds to exactly one line in the ABC music body
+- **Testing and verification**:
+  - `test_largescore.fqs` (24 blocks): Now produces 24 lines of ABC music, each on a separate line
+  - `test_multibeat.fqs` (single block): Still produces single-line ABC output
+  - Block boundaries correctly placed: Each line ends with a barline `|` (as per FQS grammar)
+  - No extra whitespace issues: Proper spacing maintained between notes and barlines
+- **Benefits**:
+  - **Readability**: ABC output is now organized by FQS block structure, matching the original score organization
+  - **Compatibility**: ABC notation with multiple lines is standard for multi-voice scores
+  - **Maintainability**: Easier to debug and compare FQS input with ABC output
+  - **Visual alignment**: Each line corresponds to one vocal part/line in the score
+- **Result**: The FQS-to-ABC pipeline now produces ABC notation that mirrors the block structure of the input FQS, improving readability and maintaining the organizational intent of the original score.
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy
