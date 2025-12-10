@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "peggy": "^5.0.6"
+  },
+  "type": "module",
+  "scripts": {
+    "collect-tests": "node collect-tests.js",
+    "validate": "node run-validation.js",
+    "test": "node run-validation.js",
+    "validate:verbose": "node run-validation.js --verbose",
+    "validate:single": "node run-validation.js --test=",
+    "validate:stop": "node run-validation.js --stop="
+  }
+}

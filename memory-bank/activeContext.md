@@ -375,6 +375,49 @@ The primary focus is on **tutorial development and user education**. The core mi
   - **Consistency**: Aligns with TSV structure that includes both block and measure columns
 - **Result**: The FQS-to-ABC pipeline now correctly handles meter calculation for both single-block and multi-block FQS files, producing accurate time signatures regardless of score length or block count.
 
+### 27. Created Comprehensive Validation Suite for FQS-to-ABC Pipeline (New)
+- **Objective**: Gather all existing `test_*.fqs` files into a single JSON validation suite that includes both FQS input and expected ABC output from the `fqspipe.js` pipeline.
+- **Implementation**:
+  1. **Created `collect-tests.js`**: Script that automatically finds all `test_*.fqs` files, runs them through `fqspipe.js`, and generates `validation-suite.json`.
+  2. **Created `validation-suite.json`**: Comprehensive test suite containing 9 test cases with metadata (name, title, description, category, FQS content, expected ABC output, status).
+  3. **Created `run-validation.js`**: Test runner that validates the pipeline against the JSON suite, with options for:
+     - Running all tests or specific tests (`--test=NAME`)
+     - Stopping at intermediate pipeline stages for debugging (`--stop=STAGE`)
+     - Verbose output (`--verbose`)
+     - Help documentation (`--help`)
+  4. **Updated `package.json`**: Added npm scripts for easy validation:
+     - `npm run collect-tests` - Regenerate validation suite from test files
+     - `npm run validate` or `npm test` - Run all validation tests
+     - `npm run validate:verbose` - Run tests with detailed output
+     - `npm run validate:single` - Run single test (append `--test=NAME`)
+     - `npm run validate:stop` - Stop at intermediate stage (append `--stop=STAGE`)
+- **Test Categories**:
+  - `basic`: Simple rhythm examples
+  - `melody`: Happy Birthday example
+  - `rhythm`: Dotted rhythms and complex rhythms
+  - `meter`: Multi-beat and meter changes
+  - `structure`: Multi-block structure
+  - `pitch`: Octave resets and pitch handling
+  - `key_signature`: Key signature changes
+  - `performance`: Large score performance test
+- **Key Features**:
+  - **Automatic collection**: New test files can be added and automatically included in the suite
+  - **Comprehensive coverage**: All 9 existing test files are included and pass
+  - **Flexible testing**: Can test specific features or entire pipeline
+  - **Debug support**: Can stop at any pipeline stage to inspect intermediate outputs
+  - **Whitespace tolerance**: Allows minor whitespace differences while preserving essential newlines for abcjs
+- **Testing and verification**:
+  - All 9 tests pass successfully
+  - Individual test execution works correctly
+  - Intermediate stage stopping works for debugging
+  - npm scripts function as expected
+- **Benefits**:
+  - **Maintainability**: Centralized test suite replaces scattered test files
+  - **Reliability**: Ensures pipeline remains functional as changes are made
+  - **Development efficiency**: Easy to add new tests and verify pipeline behavior
+  - **Documentation**: Test suite serves as documentation of expected behavior
+- **Result**: The FQS-to-ABC pipeline now has a comprehensive validation system that ensures correctness and facilitates future development.
+
 ## Active Decisions and Considerations
 
 ### 1. Tutorial Pedagogy

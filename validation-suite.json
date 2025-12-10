@@ -1,0 +1,88 @@
+{
+  "version": "1.0",
+  "description": "FQS to ABC validation test suite",
+  "created": "2025-12-10",
+  "tests": [
+    {
+      "name": "dotted_rhythms",
+      "title": "Dotted Rhythms",
+      "description": "Dotted Rhythms - rhythm test",
+      "category": "rhythm",
+      "fqs": "Dotted Rhythms\n\n*--* * -* | * - - * |\nK0 cccc | cc |",
+      "expected_abc": "X:1\nK:C major\nM:3/4\nL:1/4\nC/4-C/4-C/4C/4 C -C/2C/2| [M:4/4] C -C -C C|",
+      "status": "pass"
+    },
+    {
+      "name": "simple_example",
+      "title": "Simple Example",
+      "description": "Simple Example - melody test",
+      "category": "melody",
+      "fqs": "Simple Example\n\nHap.py | birth day  to | you - ; |\nK&1 cc  | d c f  | e  |\ncounter: 3",
+      "expected_abc": "X:1\nK:F major\nM:1/4\nL:1/4\nC/2C/2| [M:3/4] D C F| E -E z|",
+      "status": "pass"
+    },
+    {
+      "name": "test_key_signature_changes",
+      "title": "Test Key Signature Changes",
+      "description": "Test Key Signature Changes - key signature test",
+      "category": "key_signature",
+      "fqs": "Test Key Signature Changes\n\n* * * * | * * * * | * * * * |\nK0 c d e f | K#6 c d e f | K&3 c d e f |",
+      "expected_abc": "X:1\nK:C major\nM:4/4\nL:1/4\nC D E F| [K:F# major] C D E F| [K:Eb major] C D E F|",
+      "status": "pass"
+    },
+    {
+      "name": "large_score",
+      "title": "Large Score",
+      "description": "Large Score - performance test",
+      "category": "performance",
+      "fqs": "Large Score\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | [4.] *** **_ |\nK0  cde fg | abc de | /cde fg | abc de |",
+      "expected_abc": "X:1\nK:C major\nM:4/4\nL:1/4\n(3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|\n[L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc (3d/2e/2/2|",
+      "status": "pass"
+    },
+    {
+      "name": "multibeat_and_partial",
+      "title": "MultiBeat and Partial",
+      "description": "MultiBeat and Partial - meter test",
+      "category": "meter",
+      "fqs": "MultiBeat and Partial\n\n2*** 2;;;** | [4.] *** **_ | [4] 2*** 2;;;** | \nK0  cde fg | abc de | cde fg |",
+      "expected_abc": "X:1\nK:C major\nM:4/4\nL:1/4\n(3CDE (5z/2z/2z/2F/2G/2| [L:1/8] [M:5/8] ABc de| [L:1/4] [M:4/4] (3cde (5z/2z/2z/2f/2g/2|",
+      "status": "pass"
+    },
+    {
+      "name": "two_blocks",
+      "title": "Two Blocks",
+      "description": "Two Blocks - structure test",
+      "category": "structure",
+      "fqs": "Two Blocks\n\nHap.py | birth day to | you - -; |\nK0 cdef | gab c |\n\nHap.py | birth day to | you - -; |\nK0 cdef | gab c |",
+      "expected_abc": "X:1\nK:C major\nM:1/4\nL:1/4\nC/2D/2| [M:3/4] E F G| A -A -A/2z/2|\n[M:1/4] C/2D/2| [M:3/4] E F G| A -A -A/2z/2|",
+      "status": "pass"
+    },
+    {
+      "name": "octave_resets_in_each_block",
+      "title": "Octave resets in each block",
+      "description": "Octave resets in each block - pitch test",
+      "category": "pitch",
+      "fqs": "Octave resets in each block\n\n* * * |  * * * |\nK#4 e f g | a b c |\n\n* * * |  * * * |\nK#4 e f g | a b c |\n\n- * * |  * * * |\nK#4  f g | a b c |",
+      "expected_abc": "X:1\nK:E major\nM:3/4\nL:1/4\nE F G| A B c|\nE F G| A B c|\n-c f g| a b c'|",
+      "status": "pass"
+    },
+    {
+      "name": "rhythms_accidentals_octaves",
+      "title": "Rhythms, Accidentals, Octaves",
+      "description": "Rhythms, Accidentals, Octaves - rhythm test",
+      "category": "rhythm",
+      "fqs": "Rhythms, Accidentals, Octaves\n\n* - - - | * - * - | * * * * * | ** ** ***  **** |\nK0   c | #c ##c | ^c ^c /c /c ^c  | &&cc &cc %ccc ^cccc  |",
+      "expected_abc": "X:1\nK:C major\nM:4/4\nL:1/4\nC -C -C -C| ^C -C ^^C -C| [M:5/4] c c' c C c| [M:4/4] __c/2c/2 _c/2c/2 (3=c/2c/2c/2 c'/4c'/4c'/4c'/4|",
+      "status": "pass"
+    },
+    {
+      "name": "simple_rhythm_example",
+      "title": "Simple Rhythm Example",
+      "description": "Simple Rhythm Example - basic test",
+      "category": "basic",
+      "fqs": "Simple Rhythm Example\n\n* - - - | * - * - | * * * * | ** ** ***  **** |\nK0   c | cc | cccc   | cc cc ccc cccc  |",
+      "expected_abc": "X:1\nK:C major\nM:4/4\nL:1/4\nC -C -C -C| C -C C -C| C C C C| C/2C/2 C/2C/2 (3C/2C/2C/2 C/4C/4C/4C/4|",
+      "status": "pass"
+    }
+  ]
+}
