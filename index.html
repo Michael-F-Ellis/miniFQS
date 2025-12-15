@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>miniFQS - Scorewriter</title>
+    <!-- abcjs audio controls CSS with local fallback -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/abcjs@6.5.2/abcjs-audio.css"
+        onerror="this.onerror=null;this.href='abcjs-audio.css';">
+    <link rel="stylesheet" href="abcjs-audio.css">
     <style>
         /* --- RESET & BASICS --- */
         * {
@@ -148,11 +152,137 @@
             min-height: 400px;
         }
 
+        /* --- ABC NOTATION SECTION --- */
+        #abc-section {
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 1000px;
+            border-radius: 4px;
+            margin-top: 20px;
+            padding: 15px;
+        }
+
+        .abc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .abc-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #2c3e50;
+        }
+
+        .abc-toggle {
+            background: #3498db;
+            border-color: #3498db;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+
+        .abc-toggle:hover {
+            background: #2980b9;
+        }
+
+        #abc-container {
+            min-height: 150px;
+            overflow: auto;
+            position: relative;
+        }
+
+        #abc-container .loading {
+            color: #7f8c8d;
+            font-style: italic;
+            text-align: center;
+            padding: 40px;
+        }
+
+        #abc-container .error {
+            color: #e74c3c;
+            background: #fdf2f2;
+            border: 1px solid #fadbd8;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .abc-rendering {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .abc-source {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .abc-playback {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .abc-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        /* ABCJS playback controls styling - Minimal overrides to avoid conflicts */
+        .abc-playback {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Hide the CSS warning that appears when abcjs-audio.css loads */
+        .abcjs-css-warning {
+            display: none !important;
+        }
+
+        /* Ensure abcjs controls are properly contained */
+        .abc-playback .abcjs-inline-audio {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Fix for nested abcjs-inline-audio divs if they occur */
+        .abcjs-inline-audio .abcjs-inline-audio {
+            width: 100%;
+        }
+
         /* --- PRINT STYLES --- */
         @media print {
 
             header,
-            #editor-pane {
+            #editor-pane,
+            #abc-section {
                 display: none !important;
             }
 
@@ -205,6 +335,7 @@
                 <button onclick="app.saveFile()">Save</button>
                 <button onclick="window.print()">Print</button>
                 <div style="width: 1px; background: #455a64; margin: 0 5px;"></div>
+                <button onclick="app.debugPipeline()">Debug</button>
                 <button class="primary" onclick="app.toggleEditor()">Toggle Editor</button>
             </div>
         </header>
@@ -212,6 +343,26 @@
         <div id="workspace">
             <div id="preview-pane">
                 <mini-fqs id="score-renderer"></mini-fqs>
+
+                <!-- ABC Notation Section -->
+                <div id="abc-section" class="abc-section">
+                    <div class="abc-header">
+                        <h3>ABC Notation</h3>
+                        <button id="toggle-abc-source" class="abc-toggle">Show Source</button>
+                    </div>
+                    <div id="abc-container" class="abc-container">
+                        <!-- ABC notation will be rendered here -->
+                    </div>
+                    <div id="abc-source" class="abc-source" style="display: none;">
+                        <pre><code id="abc-source-code"></code></pre>
+                    </div>
+                    <div id="abc-playback" class="abc-playback">
+                        <!-- MIDI playback controls will be inserted here -->
+                    </div>
+                    <div id="abc-error" class="abc-error" style="display: none;">
+                        <!-- Error messages will be shown here -->
+                    </div>
+                </div>
             </div>
             <div id="editor-pane">
                 <textarea id="source-editor" spellcheck="false" wrap="soft"
@@ -220,8 +371,17 @@
         </div>
     </div>
 
+    <!-- Load ABCJS Library -->
+    <script src="./tutorial/lib/abcjs-basic-min.js"></script>
+
     <!-- Load Web Component -->
     <script type="module" src="./mini-fqs.js"></script>
+
+    <!-- Load ABC Pipeline -->
+    <script type="module" src="./browser-pipeline-final.js"></script>
+
+    <!-- Load ABC Integration -->
+    <script type="module" src="./abc-integration.js"></script>
 
     <!-- Application Logic -->
     <script>
@@ -233,6 +393,8 @@ K0 c d e f | g a b c |`;
         const app = {
             currentFilename: 'score.mfqs',
             editorOpen: false,
+            abcIntegration: null,
+            abcDebounceTimer: null,
 
             init() {
                 this.editor = document.getElementById('source-editor');
@@ -244,21 +406,68 @@ K0 c d e f | g a b c |`;
                 // 1. Set Default Content
                 this.editor.value = DEFAULT_SCORE;
                 this.updateRenderer();
+                this.updateABCNotation();
 
                 // 2. Bind Editor Events (Debounced)
                 let debounceTimer;
                 this.editor.addEventListener('input', () => {
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(() => this.updateRenderer(), 300);
+
+                    // Also update ABC notation with separate debounce
+                    this.debounceABCUpdate();
                 });
 
                 // 3. Bind File Input Event
                 this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+
+                // 4. Initialize ABC integration
+                this.initABCIntegration();
+            },
+
+            initABCIntegration() {
+                // Wait for abcIntegration to be available
+                const checkABC = () => {
+                    if (window.abcIntegrationAPI) {
+                        this.abcIntegration = window.abcIntegrationAPI;
+                        console.log('ABC integration initialized');
+                        // Update ABC with current score
+                        this.updateABCNotation();
+                    } else {
+                        setTimeout(checkABC, 100);
+                    }
+                };
+                checkABC();
+            },
+
+            debounceABCUpdate() {
+                clearTimeout(this.abcDebounceTimer);
+                this.abcDebounceTimer = setTimeout(() => {
+                    this.updateABCNotation();
+                }, 500); // Slightly longer debounce for ABC conversion
             },
 
             updateRenderer() {
                 // Push text to component
                 this.renderer.score = this.editor.value;
+            },
+
+            updateABCNotation() {
+                if (!this.abcIntegration) {
+                    // Try to get it directly
+                    if (window.abcIntegration && window.abcIntegration.updateABCNotation) {
+                        const elements = {
+                            container: document.getElementById('abc-container'),
+                            sourceCode: document.getElementById('abc-source-code'),
+                            playback: document.getElementById('abc-playback'),
+                            error: document.getElementById('abc-error')
+                        };
+                        window.abcIntegration.updateABCNotation(this.editor.value, elements);
+                    }
+                    return;
+                }
+
+                this.abcIntegration.update(this.editor.value);
             },
 
             toggleEditor() {
@@ -278,6 +487,7 @@ K0 c d e f | g a b c |`;
                     this.currentFilename = 'score.mfqs';
                     this.updateFilenameDisplay();
                     this.updateRenderer();
+                    this.updateABCNotation();
                 }
             },
 
@@ -295,6 +505,7 @@ K0 c d e f | g a b c |`;
                     this.currentFilename = file.name;
                     this.updateFilenameDisplay();
                     this.updateRenderer();
+                    this.updateABCNotation();
 
                     // If editor is closed, maybe open it? Or leave it closed.
                     // Leaving it as user preference for now.
@@ -321,6 +532,30 @@ K0 c d e f | g a b c |`;
 
             updateFilenameDisplay() {
                 this.filenameDisplay.textContent = this.currentFilename;
+            },
+
+            debugPipeline() {
+                if (!window.fqsPipeline || !window.fqsPipeline.debugPipeline) {
+                    alert('Pipeline debug not available. Make sure browser-pipeline-final.js is loaded.');
+                    return;
+                }
+
+                const fqsText = this.editor.value;
+                const result = window.fqsPipeline.debugPipeline(fqsText);
+
+                console.log('Pipeline Debug Result:', result);
+
+                if (result.success) {
+                    const message = `Pipeline Debug Results:\n\n` +
+                        `Parse Stage: ${result.stages[0]?.duration?.toFixed(2)}ms\n` +
+                        `Convert Stage: ${result.stages[1]?.duration?.toFixed(2)}ms\n` +
+                        `Total: ${(result.stages[0]?.duration + result.stages[1]?.duration).toFixed(2)}ms\n\n` +
+                        `ABC Notation:\n${result.abc}`;
+
+                    alert(message);
+                } else {
+                    alert(`Pipeline Debug Failed:\n${result.error}`);
+                }
             }
         };
 
