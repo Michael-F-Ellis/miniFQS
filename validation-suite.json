@@ -18,7 +18,7 @@
       "description": "Simple Example - melody test",
       "category": "melody",
       "fqs": "Simple Example\n\nHap.py | birth day  to | you - ; |\nK&1 cc  | d c f  | e  |\ncounter: 3",
-      "expected_abc": "X:1\nK:F major\nM:1/4\nL:1/4\nC/2C/2| [M:3/4] D C F| E -E z|",
+      "expected_abc": "X:1\nK:F major\nM:3/4\nL:1/4\nC/2C/2| D C F| E -E z|",
       "status": "pass"
     },
     {

@@ -2,7 +2,13 @@
 // Handles rendering of ABC notation and MIDI playback
 
 import { parse } from '../../parser.js';
-import { convertToABC } from './abc-converter.js';
+import { convertToABC as oldConvertToABC } from './abc-converter.js';
+
+// Make parse available globally for the pipeline
+if (typeof window !== 'undefined') {
+	window.parse = parse;
+	window.convertToABC = oldConvertToABC;
+}
 
 // =============================================================================
 // Helper Functions for Loading ABCJS
@@ -106,9 +112,19 @@ async function waitForABCJS() {
  */
 export function getABCNotation(fqsCode) {
 	try {
+		// First try to use the pipeline if available
+		if (typeof window !== 'undefined' && window.fqsPipeline && window.fqsPipeline.runPipeline) {
+			const result = window.fqsPipeline.runPipeline(fqsCode);
+			if (result.success) {
+				return result.abc;
+			} else {
+				console.warn('Pipeline failed, falling back to old converter:', result.error);
+			}
+		}
+
+		// Fall back to old converter
 		const ast = parse(fqsCode);
-		const abcNotation = convertToABC(ast);
-		return abcNotation;
+		return oldConvertToABC(ast);
 	} catch (error) {
 		console.error('Error converting FQS to ABC notation:', error);
 		return `Error: ${error.message}`;

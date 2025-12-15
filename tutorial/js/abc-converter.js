@@ -489,3 +489,9 @@ export default {
 	convertToABC,
 	debugAST
 };
+
+// Expose convertToABC globally for browser pipeline
+if (typeof window !== 'undefined') {
+	window.convertToABC = convertToABC;
+	console.log('convertToABC function exposed globally for browser pipeline');
+}

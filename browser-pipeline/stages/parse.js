@@ -1,0 +1,103 @@
+// Stage 1: Parse FQS text to AST
+// Imports parse function from parser.js
+
+// Try to import parse function - this will work in ES module contexts
+// In browser, we need to handle different import scenarios
+
+/**
+ * Parse FQS text to AST
+ * @param {string} fqsText - FQS notation text
+ * @returns {Object} AST object
+ * @throws {Error} If parsing fails
+ */
+export function parseStage(fqsText) {
+	// Try multiple ways to get the parse function
+	let parseFunc;
+
+	// 1. Check if parse is available globally (from mini-fqs.js or other scripts)
+	if (typeof parse === 'function') {
+		parseFunc = parse;
+	}
+	// 2. Check if we can import dynamically (ES modules)
+	else if (typeof window !== 'undefined') {
+		// Try to use the parser that's already loaded
+		// The parser.js file exports parse function
+		if (window.parserModule && window.parserModule.parse) {
+			parseFunc = window.parserModule.parse;
+		} else {
+			// Last resort: try to import dynamically
+			// Note: This may not work in all browsers without proper module setup
+			throw new Error('parseStage: Parser not available. Make sure parser.js is loaded and parse function is accessible.');
+		}
+	}
+	// 3. Node.js environment
+	else {
+		// Check if parser module is already loaded
+		if (global.parse && typeof global.parse === 'function') {
+			parseFunc = global.parse;
+		} else if (global.parserModule && global.parserModule.parse) {
+			parseFunc = global.parserModule.parse;
+		} else {
+			throw new Error('parseStage: Parser not available in this environment.');
+		}
+	}
+
+	// Parse FQS to AST
+	try {
+		const ast = parseFunc(fqsText);
+
+		// Validate basic AST structure
+		if (!ast || ast.type !== 'Score') {
+			throw new Error('Invalid AST structure: expected Score object');
+		}
+
+		return ast;
+	} catch (error) {
+		// Enhance error message with context
+		const enhancedError = new Error(`Parse error: ${error.message}`);
+		enhancedError.originalError = error;
+		enhancedError.input = fqsText;
+		throw enhancedError;
+	}
+}
+
+/**
+ * Validate AST structure
+ * @param {Object} ast - AST to validate
+ * @returns {boolean} true if valid
+ */
+export function validateAST(ast) {
+	if (!ast || typeof ast !== 'object') {
+		return false;
+	}
+
+	if (ast.type !== 'Score') {
+		return false;
+	}
+
+	if (!Array.isArray(ast.blocks)) {
+		return false;
+	}
+
+	// Basic block validation
+	for (const block of ast.blocks) {
+		if (!block || block.type !== 'Block') {
+			return false;
+		}
+
+		if (!Array.isArray(block.lyrics)) {
+			return false;
+		}
+
+		if (!block.pitches || typeof block.pitches !== 'object') {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// Export for CommonJS compatibility
+if (typeof module !== 'undefined' && module.exports) {
+	module.exports = { parseStage, validateAST };
+}

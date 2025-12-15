@@ -3,6 +3,12 @@ import { layoutScore } from './layout.js';
 
 console.log('mini-fqs module loaded');
 
+// Expose parse function globally for browser pipeline
+if (typeof window !== 'undefined') {
+    window.parse = parse;
+    console.log('parse function exposed globally for browser pipeline');
+}
+
 class MiniFQS extends HTMLElement {
     constructor() {
         super();
