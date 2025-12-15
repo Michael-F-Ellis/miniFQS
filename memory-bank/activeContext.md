@@ -497,7 +497,7 @@ The primary focus is on **tutorial development and user education**. The core mi
   4. **Dependencies**:
      - Added ABCJS library script tag (`tutorial/lib/abcjs-basic-min.js`)
      - Added ABCJS audio control CSS with local fallback (`abcjs-audio.css` downloaded locally)
-     - Loaded existing `browser-pipeline-final.js` for fallback conversion
+     - **Removed interim pipeline files**: Cleaned up duplicate browser-pipeline implementations, keeping only modular `browser-pipeline/` directory
      - Added new `abc-integration.js` module
 - **Key Features**:
   - **Real-time updates**: ABC notation updates as user types (500ms debounce)
@@ -507,6 +507,7 @@ The primary focus is on **tutorial development and user education**. The core mi
   - **Error handling**: Clear error messages when conversion fails
   - **Performance optimized**: Separate debounce timing for ABC conversion (500ms) vs. mini-fqs rendering (300ms)
   - **Robust CSS loading**: CDN with local fallback ensures controls are always styled properly
+  - **Clean architecture**: Only modular pipeline implementation remains, removing interim files
 - **Testing and verification**:
   - Server running on port 8080 serves the updated `index.html`
   - Page loads without JavaScript errors
@@ -516,6 +517,7 @@ The primary focus is on **tutorial development and user education**. The core mi
   - ABCJS audio control CSS loads successfully (CDN with local fallback)
   - CSS warning messages are hidden
   - Playback controls are properly aligned within their container
+  - Debug pipeline function updated to use modular pipeline
 - **Integration benefits**:
   - **Enhanced functionality**: Users can now see standard notation and hear MIDI playback
   - **Educational value**: Helps users understand the relationship between FQS and standard notation
@@ -523,7 +525,8 @@ The primary focus is on **tutorial development and user education**. The core mi
   - **Consistent interface**: Maintains existing toggleable editor and workflow
   - **Professional styling**: Playback controls have proper visual design matching ABCJS standards
   - **Reliable operation**: Local CSS fallback ensures controls work even if CDN is unavailable
-- **Result**: The main miniFQS app now provides a complete music notation environment with FQS input, visual rendering, ABC standard notation, and MIDI playback in a single integrated interface with properly aligned and styled controls.
+  - **Clean codebase**: Removed duplicate interim files, simplified architecture
+- **Result**: The main miniFQS app now provides a complete music notation environment with FQS input, visual rendering, ABC standard notation, and MIDI playback in a single integrated interface with properly aligned and styled controls, using a clean modular pipeline architecture.
 
 ## Active Decisions and Considerations
 

@@ -377,10 +377,7 @@
     <!-- Load Web Component -->
     <script type="module" src="./mini-fqs.js"></script>
 
-    <!-- Load ABC Pipeline -->
-    <script type="module" src="./browser-pipeline-final.js"></script>
-
-    <!-- Load ABC Integration -->
+    <!-- Load ABC Integration (includes modular pipeline) -->
     <script type="module" src="./abc-integration.js"></script>
 
     <!-- Application Logic -->
@@ -534,27 +531,32 @@ K0 c d e f | g a b c |`;
                 this.filenameDisplay.textContent = this.currentFilename;
             },
 
-            debugPipeline() {
-                if (!window.fqsPipeline || !window.fqsPipeline.debugPipeline) {
-                    alert('Pipeline debug not available. Make sure browser-pipeline-final.js is loaded.');
-                    return;
-                }
+            async debugPipeline() {
+                try {
+                    // Import the modular pipeline
+                    const pipelineModule = await import('./browser-pipeline/index.js');
+                    const fqsText = this.editor.value;
 
-                const fqsText = this.editor.value;
-                const result = window.fqsPipeline.debugPipeline(fqsText);
+                    // Time the conversion
+                    const startTime = performance.now();
+                    const result = await pipelineModule.fqsToABC(fqsText);
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
 
-                console.log('Pipeline Debug Result:', result);
+                    console.log('Pipeline Debug Result:', result);
 
-                if (result.success) {
-                    const message = `Pipeline Debug Results:\n\n` +
-                        `Parse Stage: ${result.stages[0]?.duration?.toFixed(2)}ms\n` +
-                        `Convert Stage: ${result.stages[1]?.duration?.toFixed(2)}ms\n` +
-                        `Total: ${(result.stages[0]?.duration + result.stages[1]?.duration).toFixed(2)}ms\n\n` +
-                        `ABC Notation:\n${result.abc}`;
+                    if (result.success) {
+                        const message = `Pipeline Debug Results:\n\n` +
+                            `Conversion Time: ${duration.toFixed(2)}ms\n` +
+                            `ABC Notation:\n${result.abcNotation}`;
 
-                    alert(message);
-                } else {
-                    alert(`Pipeline Debug Failed:\n${result.error}`);
+                        alert(message);
+                    } else {
+                        alert(`Pipeline Debug Failed:\n${result.error}`);
+                    }
+                } catch (error) {
+                    console.error('Pipeline debug error:', error);
+                    alert(`Pipeline debug error: ${error.message}\n\nMake sure the modular pipeline is available.`);
                 }
             }
         };
