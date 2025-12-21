@@ -2,6 +2,8 @@ Here is a concise, authoritative description of the ABC notation syntax for note
 
 This document is formatted for use in an AI context (e.g., as a system prompt or context file) to guide the translation of other formats into valid ABC.
 
+This document also contains information about FQS syntax in an attempt to clarify the differences and similarities between FQS and ABC.
+
 ***
 
 # ABC Notation Note Syntax (Single Part)
@@ -9,7 +11,9 @@ This document is formatted for use in an AI context (e.g., as a system prompt or
 This document describes the syntax for representing notes, pitches, lengths, and groupings in a single-part melody using the **ABC Music Notation Standard v2.1**.
 
 ## 1. Pitch
-Pitch is represented by a letter `A` through `G`, optionally modified by octave indicators and accidentals.
+In ABC, pitch is represented by a letter `A` through `G`, optionally modified by accidentals and absolute octave indicators. Both lowercase and uppercase are used.
+
+In FQS,  pitch is represented by `a` through `g` modified by relative accidentals and relative octave indicators.  FQS uses only lowercase letters for pitch.
 
 ### Base Octaves
 ABC is case-sensitive. The two base octaves are:
@@ -20,11 +24,15 @@ ABC is case-sensitive. The two base octaves are:
 | :-------- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :----- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Pitch** | C3   | D3   | E3   | F3   | G3   | A3   | B3   | **C4** | D4   | E4   | F4   | G4   | A4   | B4   |
 
+
 ### Octave Modifiers
 To reach higher or lower octaves, append marks **after** the note letter:
 *   `'` (apostrophe): Raises pitch by one octave. (e.g., `c'` is C5).
 *   `,` (comma): Lowers pitch by one octave. (e.g., `C,` is C2).
 *   **Stacking:** Modifiers can be stacked. `c''` is C6; `C,,` is C1.
+
+FQS uses '/' and '^' as relative octave modifiers.  In the absence of modifiers, the octave of each pitch is determined relative to the preceding pitch by using the `LilyPond Rule` that initially assigns the octave so that each pitch is withing a musical 4th of the preceding pitch.  Octave modifiers alter the outcome of this calculation.  A carat, `^`, means to assign to the next higher octave and a forward slash, `/`, means to assign to the next lower octave.  FQS octave modifiers precede the
+pitch letter and accidental, if any, e.g. `/c` or `^#a`.  FQS modifiers may be stacked, e.g.  `//f` or `^^g`.
 
 ### Accidentals
 Accidentals are placed **immediately before** the note letter.
@@ -35,6 +43,16 @@ Accidentals are placed **immediately before** the note letter.
 *   `__` : Double Flat (𝄫)
 
 **Example:** `^C` (C#3), `_d'` (Db5), `=B` (B natural).
+
+FQS also requires the accidentals immediately before the note letter. It uses the following characters:
+
+*   `#` : Sharp (♯)
+*   `&` : Flat (♭)
+*   `%` : Natural (♮) — *forces a natural, overriding key signature*
+*   `##` : Double Sharp (𝄪)
+*   `&&` : Double Flat (𝄫)
+
+
 
 ---
 
@@ -69,6 +87,15 @@ Used to represent dotted pairs (long-short or short-long).
 
 ---
 
+FQS separates rhythm from pitches.  Each beat is divided into subbeats of equal length. Any beat may contain any number of subbeats. 
+- `*` : One note lasting one beat.
+- `;` : A rest lasing one beat.
+- `* -` : One note lasting two beats. (whitespace separates beats)
+- `**`  : Two notes, each lasting 1/2 beat.
+- `***` : Three notes, each lasting 1/3 beat (i.e. a triplet)
+- `*;*;` : Note, rest, note, rest within one beat, each lasting 1/4 beat.
+- `*--*` : Broken rhythm. First note sustained 3/4 of a beat, second lasts 1/4 beat.
+
 ## 4. Grouping and Beaming
 *   **Beaming:** Notes written effectively without spaces are beamed together.
     *   `ABC` : Three notes beamed together.
@@ -91,6 +118,7 @@ Tuplets are denoted by `(p` put before a group of `p` notes.
 *   `(3` : Triplet (put 3 notes into the time of 2).
     *   Example: `(3ABC`
 *   **General Syntax:** `(p:q:r` means "put `p` notes into the time of `q` for the next `r` notes".
+    * Example: For L:1/4, `(5:3:2C3C2`  puts a dotted half-note, `C3`, and a half-note, `C2` into the space of 3 beats. The corresponding FQS rhythm would be `3*--*-` (assuming a quarter note beat duration).
 
 ---
 

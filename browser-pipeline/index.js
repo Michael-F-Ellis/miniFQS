@@ -10,6 +10,7 @@ import { beatStage, getBeatStats } from './stages/beat.js';
 import { meterStage, getMeterStats } from './stages/meter.js';
 import { keysigStage, getKeysigStats } from './stages/keysig.js';
 import { notesStage, getNoteStats } from './stages/notes.js';
+import { optimizeTiesStage, getOptimizationStats } from './stages/optimize.js';
 import { generateStage, generateTSV, getGenerationStats } from './stages/generate.js';
 
 /**
@@ -80,10 +81,15 @@ export async function fqsToABC(fqsText, options = {}) {
 		result.intermediate.notes = noteRows;
 		result.stats.notes = getNoteStats(noteRows);
 
-		// Stage 10: Generate ABC notation
-		const abcNotation = generateStage(noteRows);
+		// Stage 10: Optimize tied notes to dotted notes
+		const optimizedRows = optimizeTiesStage(noteRows);
+		result.intermediate.optimized = optimizedRows;
+		result.stats.optimize = getOptimizationStats(optimizedRows);
+
+		// Stage 11: Generate ABC notation (use optimized rows)
+		const abcNotation = generateStage(optimizedRows);
 		result.abcNotation = abcNotation;
-		result.stats.generate = getGenerationStats(noteRows);
+		result.stats.generate = getGenerationStats(optimizedRows);
 
 		result.success = true;
 	} catch (error) {
@@ -121,7 +127,8 @@ export function getStageNames() {
 		'beat',
 		'meter',
 		'keysig',
-		'notes'
+		'notes',
+		'optimized'
 	];
 }
 
@@ -152,6 +159,8 @@ export function runSingleStage(stageName, inputRows) {
 			return keysigStage(inputRows);
 		case 'notes':
 			return notesStage(inputRows);
+		case 'optimize':
+			return optimizeTiesStage(inputRows);
 		case 'generate':
 			throw new Error('generate stage returns ABC string, not rows');
 		default:
@@ -170,6 +179,7 @@ export {
 	meterStage,
 	keysigStage,
 	notesStage,
+	optimizeTiesStage,
 	generateStage
 };
 
@@ -186,6 +196,7 @@ export {
 	getMeterStats,
 	getKeysigStats,
 	getNoteStats,
+	getOptimizationStats,
 	getGenerationStats
 };
 
@@ -205,6 +216,7 @@ if (typeof module !== 'undefined' && module.exports) {
 		meterStage,
 		keysigStage,
 		notesStage,
+		optimizeTiesStage,
 		generateStage,
 		validateAST,
 		rowsToTSV,
@@ -217,6 +229,7 @@ if (typeof module !== 'undefined' && module.exports) {
 		getMeterStats,
 		getKeysigStats,
 		getNoteStats,
+		getOptimizationStats,
 		getGenerationStats
 	};
 }

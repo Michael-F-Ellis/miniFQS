@@ -19,6 +19,7 @@ const PIPELINE_STAGES = [
 	{ name: 'meter', script: 'abcmeter.js', output: 'tsv', description: 'Add meter (time signature) changes' },
 	{ name: 'keysig', script: 'abckeysig.js', output: 'tsv', description: 'Add key signatures and barlines in ABC format' },
 	{ name: 'notes', script: 'abcnotes.js', output: 'tsv', description: 'Convert pitch/rhythm to ABC note syntax' },
+	{ name: 'optimize', script: 'optimizeTies.js', output: 'tsv', description: 'Optimize tied notes to dotted notes where appropriate' },
 	{ name: 'generate', script: 'abcgen.js', output: 'abc', description: 'Generate final ABC notation string' }
 ];
 
