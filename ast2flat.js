@@ -54,7 +54,6 @@ function flattenLyrics(blockIdx, block, rows) {
 	// Determine starting measure: if counter exists, start at 0 (pickup), else 1
 	let measure = block.counter ? 0 : 1;
 	let beatInMeasure = 1; // 1-based beat within current measure
-	let totalBeats = 0;   // cumulative beats from start of block
 
 	for (const item of block.lyrics) {
 		if (item.type === 'Barline') {
@@ -65,7 +64,6 @@ function flattenLyrics(blockIdx, block, rows) {
 				measure,             // meas
 				'',                  // beat
 				'',                  // sub
-				0,                   // total (not meaningful for barline)
 				'Barline',           // type
 				'|',                 // value
 				'',                  // dur
@@ -80,7 +78,6 @@ function flattenLyrics(blockIdx, block, rows) {
 			// Move to next measure
 			measure++;
 			beatInMeasure = 1;
-			// totalBeats remains unchanged (barline doesn't add beats)
 		}
 		else if (item.type === 'BeatDuration') {
 			// Output a beat duration row (from lyric line directive [4.] or [4])
@@ -91,7 +88,6 @@ function flattenLyrics(blockIdx, block, rows) {
 				measure,             // meas (current measure)
 				'',                  // beat
 				'',                  // sub
-				0,                   // total
 				'BeatDur',           // type
 				value,               // value (e.g., [4.], [4])
 				'',                  // dur
@@ -107,12 +103,10 @@ function flattenLyrics(blockIdx, block, rows) {
 		else if (item.type === 'BeatTuple') {
 			const dur = item.duration;
 			const subdivisions = item.content.length;
-			const subDur = dur / subdivisions;
 
 			for (let subIdx = 0; subIdx < subdivisions; subIdx++) {
 				const segment = item.content[subIdx];
 				const sub = subIdx + 1; // 1-based subdivision
-				const total = totalBeats + (subIdx * subDur);
 
 				// Determine type and value
 				let type, value;
@@ -133,7 +127,6 @@ function flattenLyrics(blockIdx, block, rows) {
 					measure,             // meas
 					beatInMeasure,       // beat (starting beat of the tuple)
 					sub,                 // sub
-					total.toFixed(3),    // total
 					type,                // type
 					value,               // value
 					dur,                 // dur (beat duration)
@@ -146,8 +139,7 @@ function flattenLyrics(blockIdx, block, rows) {
 				]);
 			}
 
-			// Update counters
-			totalBeats += dur;
+			// Update beat counter
 			beatInMeasure += dur;
 		}
 	}
@@ -170,7 +162,6 @@ function flattenPitches(blockIdx, block, rows) {
 			'',                  // meas
 			'',                  // beat
 			'',                  // sub
-			0,                   // total
 			'KeySig',            // type
 			value,               // value
 			'',                  // dur
@@ -212,7 +203,6 @@ function flattenPitches(blockIdx, block, rows) {
 			'',                  // meas
 			'',                  // beat
 			'',                  // sub
-			0,                   // total
 			type,                // type
 			value,               // value
 			'',                  // dur
@@ -262,7 +252,6 @@ function main() {
 			'meas',
 			'beat',
 			'sub',
-			'total',
 			'type',
 			'value',
 			'dur',

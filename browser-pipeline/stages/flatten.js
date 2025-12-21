@@ -14,7 +14,6 @@ function flattenLyrics(blockIdx, block) {
 	// Determine starting measure: if counter exists, start at 0 (pickup), else 1
 	let measure = block.counter ? 0 : 1;
 	let beatInMeasure = 1; // 1-based beat within current measure
-	let totalBeats = 0;   // cumulative beats from start of block
 
 	// Add counter value to first row if present
 	let counterAdded = false;
@@ -28,7 +27,6 @@ function flattenLyrics(blockIdx, block) {
 				meas: measure,
 				beat: '',
 				sub: '',
-				total: 0,
 				type: 'Barline',
 				value: '|',
 				dur: '',
@@ -48,7 +46,6 @@ function flattenLyrics(blockIdx, block) {
 			// Move to next measure
 			measure++;
 			beatInMeasure = 1;
-			// totalBeats remains unchanged (barline doesn't add beats)
 		}
 		else if (item.type === 'BeatDuration') {
 			// Output a beat duration row (from lyric line directive [4.] or [4])
@@ -59,7 +56,6 @@ function flattenLyrics(blockIdx, block) {
 				meas: measure, // current measure
 				beat: '',
 				sub: '',
-				total: 0,
 				type: 'BeatDur',
 				value: value,
 				dur: '',
@@ -80,12 +76,10 @@ function flattenLyrics(blockIdx, block) {
 		else if (item.type === 'BeatTuple') {
 			const dur = item.duration;
 			const subdivisions = item.content.length;
-			const subDur = dur / subdivisions;
 
 			for (let subIdx = 0; subIdx < subdivisions; subIdx++) {
 				const segment = item.content[subIdx];
 				const sub = subIdx + 1; // 1-based subdivision
-				const total = totalBeats + (subIdx * subDur);
 
 				// Determine type and value
 				let type, value;
@@ -106,7 +100,6 @@ function flattenLyrics(blockIdx, block) {
 					meas: measure,
 					beat: beatInMeasure,
 					sub: sub,
-					total: total.toFixed(3),
 					type: type,
 					value: value,
 					dur: dur,
@@ -124,8 +117,7 @@ function flattenLyrics(blockIdx, block) {
 				rows.push(row);
 			}
 
-			// Update counters
-			totalBeats += dur;
+			// Update beat counter
 			beatInMeasure += dur;
 		}
 	}
@@ -152,7 +144,6 @@ function flattenPitches(blockIdx, block) {
 			meas: '',
 			beat: '',
 			sub: '',
-			total: 0,
 			type: 'KeySig',
 			value: value,
 			dur: '',
@@ -193,7 +184,6 @@ function flattenPitches(blockIdx, block) {
 			meas: '',
 			beat: '',
 			sub: '',
-			total: 0,
 			type: type,
 			value: value,
 			dur: '',

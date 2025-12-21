@@ -200,4 +200,19 @@ fqspipe.js → fqs2ast.js, ast2flat.js, pitch-octaves.js, map-pitches.js, abcpre
 - Manual testing by rendering example scores.
 - Visual verification against expected output.
 
+## Development Guidelines
+
+### File Size Management
+- **200-line limit**: Source files should be kept under approximately 200 lines to ensure reliable editing with the DeepSeek Chat LLM.
+- **Modular decomposition**: When files approach or exceed 200 lines, split them into smaller, focused modules.
+- **Logical grouping**: Split files based on functional cohesion (e.g., helper functions vs. main logic, parsing vs. processing).
+- **Import/export patterns**: Use ES modules (`import`/`export`) for clean separation between modules.
+- **Documentation**: Each new module should have clear JSDoc comments explaining its purpose and interface.
+
+### Code Organization Patterns
+- **Single responsibility**: Each module should have a clear, focused purpose.
+- **Pure functions**: Prefer pure functions over stateful classes where possible.
+- **Consistent interfaces**: Modules should expose clean, well-documented APIs.
+- **Error handling**: Each module should handle its own errors or propagate them clearly.
+
 This system patterns document captures the architectural decisions and patterns that make miniFQS work, providing a blueprint for understanding and extending the system.

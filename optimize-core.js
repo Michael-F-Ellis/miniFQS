@@ -1,12 +1,13 @@
-// Stage 11: Optimize tied notes to dotted notes where appropriate
-// Applies heuristics from DottedVsTie.md to improve notation readability
+/**
+ * optimize-core.js - Core optimization logic for tied notes
+ * 
+ * Contains the main optimizeBeatGroup function for converting tied sequences to dotted notes
+ */
 
 import {
-	extractUnitNoteLength,
-	extractMeter,
 	calculateDuration,
 	wouldCrossBeatBoundary
-} from '../../optimize-helpers.js';
+} from './optimize-helpers.js';
 
 /**
  * Optimize tied notes in a beat group
@@ -16,7 +17,7 @@ import {
  * @param {number} beatNumber - Beat number (1-indexed)
  * @returns {Array<Object>} Updated rows with abc column populated
  */
-function optimizeBeatGroup(beatRows, unitNoteLength, meter, beatNumber) {
+export function optimizeBeatGroup(beatRows, unitNoteLength, meter, beatNumber) {
 	if (beatRows.length === 0) return beatRows;
 
 	// Group rows into tied sequences
@@ -244,144 +245,7 @@ function optimizeBeatGroup(beatRows, unitNoteLength, meter, beatNumber) {
 	return optimizedRows;
 }
 
-/**
- * Optimize tied notes to dotted notes where appropriate
- * @param {Array<Object>} rows - Rows from notesStage
- * @returns {Array<Object>} Rows with abc column populated with optimized notation
- */
-export function optimizeTiesStage(rows) {
-	// Create a copy of rows
-	const newRows = rows.map(row => ({ ...row, abc: '' }));
-
-	// Get default unit note length and meter from headers
-	let defaultUnitNoteLength = '1/4';
-	let defaultMeter = '4/4';
-
-	for (const row of newRows) {
-		if (row.source === 'abchdr') {
-			if (row.value === 'L:') {
-				defaultUnitNoteLength = row.abc0 || '1/4';
-			} else if (row.value === 'M:') {
-				defaultMeter = row.abc0 || '4/4';
-			}
-		}
-	}
-
-	// Group rows by (block, measure, beat) for lyric rows
-	const beatGroups = new Map(); // key -> array of rows
-
-	for (const row of newRows) {
-		if (row.source === 'lyrics' && row.meas !== undefined && row.meas !== '' && row.beat) {
-			const key = `${row.block || '1'}-${row.meas}-${row.beat}`;
-			if (!beatGroups.has(key)) {
-				beatGroups.set(key, []);
-			}
-			beatGroups.get(key).push(row);
-		}
-	}
-
-	// Process each beat group
-	for (const [key, beatRows] of beatGroups.entries()) {
-		// Parse key to get block, measure, beat
-		const [block, meas, beat] = key.split('-').map(Number);
-
-		// Get unit note length and meter for this measure
-		let unitNoteLength = defaultUnitNoteLength;
-		let meter = defaultMeter;
-
-		// Look for measure-specific directives in the rows
-		for (const row of beatRows) {
-			const abc0 = row.abc0 || '';
-			const extractedUnit = extractUnitNoteLength(abc0);
-			const extractedMeter = extractMeter(abc0);
-
-			if (extractedUnit) unitNoteLength = extractedUnit;
-			if (extractedMeter) meter = extractedMeter;
-		}
-
-		// Also check for meter changes in the measure
-		// Look for rows with [M:...] in abc0
-		for (const row of newRows) {
-			if (row.source === 'lyrics' && row.meas === meas.toString()) {
-				const abc0 = row.abc0 || '';
-				const extractedMeter = extractMeter(abc0);
-				if (extractedMeter) meter = extractedMeter;
-			}
-		}
-
-		// Sort beat rows by subdivision
-		beatRows.sort((a, b) => {
-			const subA = a.sub ? parseInt(a.sub) : 1;
-			const subB = b.sub ? parseInt(b.sub) : 1;
-			return subA - subB;
-		});
-
-		// Optimize this beat group
-		const optimizedBeatRows = optimizeBeatGroup(beatRows, unitNoteLength, meter, beat);
-
-		// Update the rows in newRows
-		for (const optimizedRow of optimizedBeatRows) {
-			// Find the index of this row in newRows
-			const index = newRows.findIndex(r =>
-				r.source === optimizedRow.source &&
-				r.block === optimizedRow.block &&
-				r.meas === optimizedRow.meas &&
-				r.beat === optimizedRow.beat &&
-				r.sub === optimizedRow.sub &&
-				r.value === optimizedRow.value
-			);
-
-			if (index !== -1) {
-				newRows[index] = optimizedRow;
-			}
-		}
-	}
-
-	// For non-lyric rows, copy abc0 to abc
-	for (const row of newRows) {
-		if (!row.abc && row.abc0) {
-			row.abc = row.abc0;
-		}
-	}
-
-	return newRows;
-}
-
-/**
- * Get optimization statistics
- * @param {Array<Object>} rows - Rows from optimizeTiesStage
- * @returns {Object} Statistics about optimizations
- */
-export function getOptimizationStats(rows) {
-	const stats = {
-		totalNotes: 0,
-		tiedSequences: 0,
-		optimizedSequences: 0,
-		dottedNotesCreated: 0,
-		beatBoundaryViolations: 0
-	};
-
-	// Count notes with abc column
-	for (const row of rows) {
-		if (row.source === 'lyrics' && row.abc) {
-			stats.totalNotes++;
-
-			// Check for dotted notes in abc
-			if (row.abc.match(/\d/)) {
-				stats.dottedNotesCreated++;
-			}
-
-			// Check for ties in abc0 (original)
-			if (row.abc0 && row.abc0.includes('-')) {
-				stats.tiedSequences++;
-			}
-		}
-	}
-
-	return stats;
-}
-
 // Export for CommonJS compatibility
 if (typeof module !== 'undefined' && module.exports) {
-	module.exports = { optimizeTiesStage, getOptimizationStats };
+	module.exports = { optimizeBeatGroup };
 }
