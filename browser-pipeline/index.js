@@ -4,7 +4,9 @@
 import { parseStage, validateAST } from './stages/parse.js';
 import { flattenStage, rowsToTSV } from './stages/flatten.js';
 import { octavesStage, getOctaveStats } from './stages/octaves.js';
+import { alterationsStage, getAlterationStats } from './stages/alterations.js';
 import { mapStage, getMappingStats } from './stages/map.js';
+import { layoutStage, getLayoutStats } from './stages/layout.js';
 import { prepStage, extractTitle, updateTitle } from './stages/prep.js';
 import { beatStage, getBeatStats } from './stages/beat.js';
 import { meterStage, getMeterStats } from './stages/meter.js';
@@ -44,13 +46,23 @@ export async function fqsToABC(fqsText, options = {}) {
 		result.intermediate.octaves = octaveRows;
 		result.stats.octaves = getOctaveStats(octaveRows);
 
-		// Stage 4: Map pitch information to lyric attacks
-		const mappedRows = mapStage(octaveRows);
+		// Stage 4: Calculate pitch alterations as integers
+		const alterationRows = alterationsStage(octaveRows);
+		result.intermediate.alterations = alterationRows;
+		result.stats.alterations = getAlterationStats(alterationRows);
+
+		// Stage 5: Map pitch information to lyric attacks
+		const mappedRows = mapStage(alterationRows);
 		result.intermediate.mapped = mappedRows;
 		result.stats.map = getMappingStats(mappedRows);
 
-		// Stage 5: Add ABC headers and columns
-		const prepRows = prepStage(mappedRows);
+		// Stage 6: Calculate X positions for layout
+		const layoutRows = layoutStage(mappedRows);
+		result.intermediate.layout = layoutRows;
+		result.stats.layout = getLayoutStats(layoutRows);
+
+		// Stage 7: Add ABC headers and columns
+		const prepRows = prepStage(layoutRows);
 		result.intermediate.prep = prepRows;
 		result.stats.prep = { rows: prepRows.length };
 
@@ -61,32 +73,32 @@ export async function fqsToABC(fqsText, options = {}) {
 			result.intermediate.prep = titledRows;
 		}
 
-		// Stage 6: Process beat duration
+		// Stage 8: Process beat duration
 		const beatRows = beatStage(result.intermediate.prep);
 		result.intermediate.beat = beatRows;
 		result.stats.beat = getBeatStats(beatRows);
 
-		// Stage 7: Add meter information
+		// Stage 9: Add meter information
 		const meterRows = meterStage(beatRows);
 		result.intermediate.meter = meterRows;
 		result.stats.meter = getMeterStats(meterRows);
 
-		// Stage 8: Add key signatures and barlines
+		// Stage 10: Add key signatures and barlines
 		const keysigRows = keysigStage(meterRows);
 		result.intermediate.keysig = keysigRows;
 		result.stats.keysig = getKeysigStats(keysigRows);
 
-		// Stage 9: Convert to ABC note syntax
+		// Stage 11: Convert to ABC note syntax
 		const noteRows = notesStage(keysigRows);
 		result.intermediate.notes = noteRows;
 		result.stats.notes = getNoteStats(noteRows);
 
-		// Stage 10: Optimize tied notes to dotted notes
+		// Stage 12: Optimize tied notes to dotted notes
 		const optimizedRows = optimizeTiesStage(noteRows);
 		result.intermediate.optimized = optimizedRows;
 		result.stats.optimize = getOptimizationStats(optimizedRows);
 
-		// Stage 11: Generate ABC notation (use optimized rows)
+		// Stage 13: Generate ABC notation (use optimized rows)
 		const abcNotation = generateStage(optimizedRows);
 		result.abcNotation = abcNotation;
 		result.stats.generate = getGenerationStats(optimizedRows);
@@ -122,7 +134,9 @@ export function getStageNames() {
 		'ast',
 		'flattened',
 		'octaves',
+		'alterations',
 		'mapped',
+		'layout',
 		'prep',
 		'beat',
 		'meter',
@@ -147,8 +161,12 @@ export function runSingleStage(stageName, inputRows) {
 			return flattenStage(inputRows);
 		case 'octaves':
 			return octavesStage(inputRows);
+		case 'alterations':
+			return alterationsStage(inputRows);
 		case 'map':
 			return mapStage(inputRows);
+		case 'layout':
+			return layoutStage(inputRows);
 		case 'prep':
 			return prepStage(inputRows);
 		case 'beat':
@@ -173,7 +191,9 @@ export {
 	parseStage,
 	flattenStage,
 	octavesStage,
+	alterationsStage,
 	mapStage,
+	layoutStage,
 	prepStage,
 	beatStage,
 	meterStage,
@@ -191,7 +211,9 @@ export {
 	extractTitle,
 	updateTitle,
 	getOctaveStats,
+	getAlterationStats,
 	getMappingStats,
+	getLayoutStats,
 	getBeatStats,
 	getMeterStats,
 	getKeysigStats,
@@ -210,7 +232,9 @@ if (typeof module !== 'undefined' && module.exports) {
 		parseStage,
 		flattenStage,
 		octavesStage,
+		alterationsStage,
 		mapStage,
+		layoutStage,
 		prepStage,
 		beatStage,
 		meterStage,
@@ -224,7 +248,9 @@ if (typeof module !== 'undefined' && module.exports) {
 		extractTitle,
 		updateTitle,
 		getOctaveStats,
+		getAlterationStats,
 		getMappingStats,
+		getLayoutStats,
 		getBeatStats,
 		getMeterStats,
 		getKeysigStats,

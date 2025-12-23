@@ -467,6 +467,89 @@ The primary focus is on **tutorial development and user education**. The core mi
 
 ### 30. Integrated ABC Pipeline into Main App with Real-time Rendering (New)
 - **Objective**: Integrate the browser pipeline into the main miniFQS app to provide real-time ABC notation rendering and MIDI playback alongside the existing mini-fqs component.
+
+### 31. Created Alterations Stage for Pitch Accidental Calculation (New)
+- **Objective**: Add a new stage to the browser pipeline that calculates pitch alterations as integers (-2, -1, 0, 1, 2) based on precedence rules (explicit accidental → measure accidental → key signature).
+- **Implementation details**:
+  1. **New stage**: `browser-pipeline/stages/alterations.js` inserted between octaves and map stages.
+  2. **AlterationState class**: Tracks alteration state within measures, handling key signature changes and measure-level alterations.
+  3. **Precedence rules**:
+     - Explicit accidental (e.g., `#`, `##`, `&`, `&&`, `%`) overrides everything
+     - Measure accidental (accidental from previous occurrence in same measure) overrides key signature
+     - Key signature provides default alteration for each note
+  4. **State management**: Resets at barlines and key signature changes, tracks alterations per measure.
+  5. **Integer representation**: Uses -2 (double flat), -1 (flat), 0 (natural), 1 (sharp), 2 (double sharp) for consistent processing.
+  6. **Integration**: Works seamlessly with existing pipeline, adding `pitch_alt` column to rows.
+- **Testing and verification**:
+  - Created comprehensive test suite `test-alterations.js` with 12 test cases covering all precedence scenarios.
+  - Verified correct behavior for explicit accidentals, measure accidentals, and key signature alterations.
+  - Tested edge cases: barline resets, key signature changes, cross-measure alterations.
+  - All tests pass successfully.
+- **Benefits**:
+  - **Correct accidental application**: Ensures proper accidental precedence as per music theory.
+  - **Simplified note conversion**: Provides integer alterations for easy mapping to ABC accidentals.
+  - **Consistent state management**: Properly handles measure boundaries and key changes.
+  - **Integration ready**: Works with existing pipeline stages without breaking changes.
+
+### 32. Created Layout Stage for X Position Calculation (New)
+- **Objective**: Add a new stage to calculate X positions for rendering layout, enabling future visual alignment of lyrics, pitches, and counters.
+- **Implementation details**:
+  1. **New stage**: `browser-pipeline/stages/layout.js` inserted between map and prep stages.
+  2. **LayoutState class**: Tracks layout state for X position calculation across blocks, measures, and beats.
+  3. **X position calculation**:
+     - Lyrics: Each character occupies 1 unit width (monospace)
+     - Pitches: Align with corresponding lyric positions
+     - Counters: Proportional spacing within beats for tuples
+     - Barlines: Don't advance X position
+  4. **Beat duration handling**: Supports proportional spacing for tuples within beats.
+  5. **Integration**: Adds `x` column to rows for horizontal positioning.
+- **Testing and verification**:
+  - Created comprehensive test suite `test-layout.js` with multiple test cases.
+  - Verified correct X positions for lyrics, pitches, counters, and barlines.
+  - Tested proportional spacing for tuples within beats.
+  - All tests pass successfully.
+- **Benefits**:
+  - **Visual alignment**: Enables precise positioning for rendering.
+  - **Future extensibility**: Foundation for Y position calculation and staff layout.
+  - **Consistent spacing**: Handles monospace character widths and proportional spacing.
+  - **Integration ready**: Works with existing pipeline stages without breaking changes.
+
+### 33. Fixed Row Instance Compatibility Across Pipeline Stages (New)
+- **Problem identified**: Pipeline stages were inconsistently handling Row instances vs plain objects, causing `row.clone is not a function` errors.
+- **Root cause**: Some stages used `rows.map(row => ({ ...row }))` creating plain objects, while others used `rows.map(row => row.clone())` expecting Row instances.
+- **Solution**: Updated all stages to handle both Row instances and plain objects:
+  1. **Updated `octaves.js`**: Added check for `row.clone()` method, fallback to shallow copy.
+  2. **Updated `alterations.js`**: Added check for `row.clone()` method, fallback to shallow copy.
+  3. **Updated `map.js`**: Added check for `row.clone()` method, fallback to shallow copy.
+  4. **Updated `layout.js`**: Added check for `row.clone()` method, fallback to shallow copy.
+  5. **Consistent pattern**: All stages now use same compatibility pattern.
+- **Testing and verification**:
+  - Created integration test `test-pipeline-integration.js` that runs all stages with mock data.
+  - Verified all stages work correctly with both Row instances and plain objects.
+  - Pipeline integration test passes successfully.
+  - Cleaned up test files after verification.
+- **Benefits**:
+  - **Robustness**: Pipeline stages now work with any input format.
+  - **Backward compatibility**: Existing code continues to work.
+  - **Future-proof**: New stages can follow same pattern.
+  - **Clean architecture**: Consistent error handling across pipeline.
+
+### 34. Updated Browser Pipeline Specification with New Stages (New)
+- **Objective**: Update the pipeline specification document to include the new alterations and layout stages.
+- **Implementation details**:
+  1. **Updated `browser-pipeline-specification.md`**:
+     - Added Stage 4: `alterations` with detailed description, input/output columns, and transformations.
+     - Added Stage 6: `layout` with detailed description, input/output columns, and transformations.
+     - Updated stage numbering: map becomes stage 5, layout becomes stage 6, all subsequent stages renumbered.
+     - Updated data flow diagram to include alterations stage.
+     - Updated pitch columns section to include `pitch_alt`.
+  2. **Comprehensive documentation**: Each stage includes purpose, input/output, reads/writes columns, and key transformations.
+  3. **Clear data flow**: Shows complete pipeline from FQS text to ABC notation.
+- **Benefits**:
+  - **Complete documentation**: All 13 pipeline stages now documented.
+  - **Clear architecture**: Developers can understand the complete transformation process.
+  - **Maintenance aid**: Helps with debugging and future enhancements.
+  - **Onboarding resource**: New contributors can understand the pipeline structure.
 - **Implementation**:
   1. **HTML Structure**: Added ABC notation section to `index.html` with:
      - Header with "ABC Notation" title and "Show Source" toggle button

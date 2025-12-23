@@ -10,7 +10,13 @@ import { isAttackRow } from '../utils.js';
  */
 export function mapStage(rows) {
 	// Create a copy of rows to avoid mutation
-	const newRows = rows.map(row => ({ ...row }));
+	const newRows = rows.map(row => {
+		// If row has clone method, use it; otherwise create a shallow copy
+		if (row && typeof row.clone === 'function') {
+			return row.clone();
+		}
+		return { ...row };
+	});
 
 	// State for pitch mapping
 	let currentBlock = null;
